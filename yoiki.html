@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Absensi Kelas — PAI Semester III</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --line:#ececf0; --line2:#e3e3ea;
+  --text:#1f2328; --text2:#71767f; --accent:#2f6df6; --accent-d:#255ad6;
+  --green:#16a34a; --greenbg:#e7f6ec; --orange:#ea580c; --orangebg:#fdeee3;
+  --blue:#2563eb; --bluebg:#e7effe; --purple:#7c3aed; --purplebg:#efe9fd;
+  --red:#dc2626; --redbg:#fdeaea; --gray:#8a9099; --graybg:#eef0f2;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);font-size:15px;line-height:1.45}
+.app{max-width:460px;margin:0 auto;min-height:100vh;background:var(--card);
+  display:flex;flex-direction:column;position:relative;box-shadow:0 0 40px rgba(0,0,0,.06)}
+.hd{display:flex;align-items:center;gap:11px;padding:14px 16px;border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--card);z-index:20}
+.logo{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;flex-shrink:0}
+.hd .ti b{display:block;font-size:15px;font-weight:750}
+.hd .ti span{display:block;font-size:11.5px;color:var(--text2)}
+.hd .sp{flex:1}
+.mebox{display:none;text-align:right;line-height:1.25}
+.mebox b{display:block;font-size:12.5px;font-weight:700}
+#logoutBtn{display:none;border:1px solid var(--line2);background:var(--card);border-radius:8px;
+  padding:7px 9px;margin-left:9px;cursor:pointer;font-size:14px}
+#main{flex:1;overflow-y:auto;padding:16px;padding-bottom:86px}
+.screen{display:none;animation:f .25s ease}
+.screen.active{display:block}
+@keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+h2.title{font-size:21px;font-weight:770;margin:2px 0 3px}
+.sub{color:var(--text2);font-size:13px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:15px;margin-bottom:13px}
+.card.tint{background:#fafbfc}
+label.lb{display:block;font-size:12.5px;font-weight:650;margin:12px 0 6px;color:var(--text)}
+label.lb:first-child{margin-top:0}
+input,select,textarea{width:100%;padding:12px 13px;border:1px solid var(--line2);border-radius:11px;
+  font-size:15px;font-family:inherit;background:var(--card);color:var(--text);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:78px}
+.btn{width:100%;padding:13px;border:none;border-radius:12px;background:var(--accent);color:#fff;
+  font-size:15px;font-weight:700;cursor:pointer;margin-top:14px;transition:.15s}
+.btn:active{transform:scale(.98)}
+.btn.sec{background:var(--redbg);color:var(--red)}
+.btn.ghost{background:var(--graybg);color:var(--text);font-weight:650}
+.btn.ok{background:var(--green)}
+.hint{font-size:11.5px;color:var(--text2);margin-top:6px}
+.divlabel{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text2);margin:20px 0 10px}
+.callout{display:flex;gap:10px;background:var(--bluebg);border-radius:12px;padding:12px 13px;
+  font-size:12.5px;color:#2b4a80;margin-top:14px}
+.callout .em{font-size:16px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:12px 6px;text-align:center}
+.stat b{display:block;font-size:22px;font-weight:800;line-height:1}
+.stat span{display:block;font-size:11px;color:var(--text2);margin-top:5px}
+.stat.g b{color:var(--green)} .stat.o b{color:var(--orange)}
+.stat.b b{color:var(--blue)} .stat.r b{color:var(--red)}
+.row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.av{width:38px;height:38px;border-radius:50%;background:var(--graybg);color:var(--text2);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.nm{flex:1;min-width:0}
+.nm b{display:block;font-size:13.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm span{display:block;font-size:11.5px;color:var(--text2)}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.b-Hadir{background:var(--greenbg);color:var(--green)}
+.b-Terlambat{background:var(--orangebg);color:var(--orange)}
+.b-Izin{background:var(--bluebg);color:var(--blue)}
+.b-Sakit{background:var(--purplebg);color:var(--purple)}
+.b-Alfa{background:var(--redbg);color:var(--red)}
+.b-Belum{background:var(--graybg);color:var(--gray)}
+.b-pengurus{background:#eae6ff;color:#6d28d9}
+.b-anggota{background:var(--graybg);color:var(--text2)}
+.kolrow{padding:12px 0;border-bottom:1px solid var(--line)}
+.kolrow .top{display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:7px 12px;border:1px solid var(--line2);border-radius:9px;background:var(--card);
+  font-size:12px;font-weight:650;cursor:pointer}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.linkbox{display:flex;align-items:center;gap:8px;background:var(--graybg);border-radius:10px;
+  padding:9px 11px;font-size:12.5px;margin:11px 0;word-break:break-all}
+.jenis{display:flex;gap:9px;margin-bottom:4px}
+.jenis button{flex:1;padding:11px;border:1px solid var(--line2);border-radius:11px;background:var(--card);
+  font-size:14px;font-weight:650;cursor:pointer}
+.jenis button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.empty{text-align:center;color:var(--text2);font-size:13px;padding:26px 10px}
+.big{text-align:center;padding:8px 0 4px}
+.big .big-em{font-size:40px}
+.absbtn{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.absbtn button{padding:15px;border:none;border-radius:13px;font-size:15px;font-weight:750;cursor:pointer;color:#fff}
+.absbtn .h{background:var(--green)} .absbtn .t{background:var(--orange)}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:460px;
+  display:none;background:var(--card);border-top:1px solid var(--line);z-index:20}
+.nav .in{display:flex;justify-content:space-around;padding:7px 4px 9px}
+.nav button{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:3px;
+  font-size:10.5px;color:var(--text2);cursor:pointer;padding:4px 8px;font-weight:600}
+.nav button .ic{font-size:19px}
+.nav button.on{color:var(--accent)}
+#toast{position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#1f2328;color:#fff;padding:11px 18px;border-radius:11px;font-size:13px;font-weight:600;
+  opacity:0;transition:.3s;z-index:50;pointer-events:none;max-width:90%;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app">
+  <div class="hd">
+    <div class="logo">✓</div>
+    <div class="ti"><b>Absensi Kelas</b><span>PAI Semester III</span></div>
+    <div class="sp"></div>
+    <div class="mebox" id="meBox"><b id="meName"></b><span id="meRole"></span></div>
+    <button id="logoutBtn" onclick="logout()" title="Keluar">⏻</button>
+  </div>
+
+  <div id="main">
+
+    <!-- LOGIN -->
+    <div class="screen active" id="s-login">
+      <h2 class="title">Masuk</h2>
+      <div class="sub">Pilih namamu, lalu masukkan NIM sebagai PIN.</div>
+      <div class="card">
+        <label class="lb">Nama</label>
+        <select id="loginName"><option value="">— Pilih nama —</option></select>
+        <label class="lb">PIN (NIM)</label>
+        <input id="loginPin" type="text" inputmode="numeric" placeholder="Contoh: 2577013498" autocomplete="off">
+        <div class="hint">Gunakan NIM-mu sendiri sebagai PIN.</div>
+        <button class="btn" onclick="doLogin()">Masuk</button>
+      </div>
+      <div class="callout"><span class="em">🔒</span><div>Data absensi tersimpan aman di server (Supabase) dan tersinkron real-time untuk semua anggota kelas.</div></div>
+    </div>
+
+    <!-- ABSEN -->
+    <div class="screen" id="s-absen">
+      <h2 class="title" id="absHi">Absen</h2>
+      <div class="sub">Tandai kehadiranmu di sesi yang sedang dibuka.</div>
+      <div id="absenBody"></div>
+    </div>
+
+    <!-- IZIN -->
+    <div class="screen" id="s-izin">
+      <h2 class="title">Ajukan Izin</h2>
+      <div class="sub">Kirim pengajuan izin atau sakit ke pengurus.</div>
+      <div class="card">
+        <label class="lb">Jenis</label>
+        <div class="jenis">
+          <button id="jz-Izin" class="on" onclick="setJenis('Izin')">Izin</button>
+          <button id="jz-Sakit" onclick="setJenis('Sakit')">Sakit</button>
+        </div>
+        <label class="lb">Mata Kuliah</label>
+        <select id="izinMatkul"></select>
+        <label class="lb">Tanggal</label>
+        <input id="izinTgl" type="date">
+        <label class="lb">Alasan</label>
+        <textarea id="izinAlasan" placeholder="Tulis alasan singkat..."></textarea>
+        <button class="btn" onclick="submitIzin()">Kirim Pengajuan</button>
+      </div>
+    </div>
+
+    <!-- RIWAYAT -->
+    <div class="screen" id="s-riwayat">
+      <h2 class="title">Riwayat Saya</h2>
+      <div class="sub">Rekam jejak absensi &amp; izinmu.</div>
+      <div id="riwayatBody"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="screen" id="s-dash">
+      <h2 class="title">Dashboard</h2>
+      <div class="sub" id="dashSub">Belum ada sesi.</div>
+      <div id="dashStats"></div>
+      <div id="dashLink"></div>
+      <input id="dashSearch" placeholder="🔍 Cari nama..." oninput="filterList('dash')" style="margin-bottom:6px">
+      <div class="divlabel">Kehadiran (17 anggota)</div>
+      <div class="card" id="dashList"></div>
+    </div>
+
+    <!-- BUAT SESI -->
+    <div class="screen" id="s-sesi">
+      <h2 class="title">Buat Sesi Absen</h2>
+      <div class="sub">Buka sesi lalu bagikan link ke grup kelas.</div>
+      <div id="sesiAktifBox"></div>
+      <div class="card" id="sesiFormCard">
+        <label class="lb">Mata Kuliah</label>
+        <select id="sesiMatkul"></select>
+        <label class="lb">Judul / Pertemuan</label>
+        <input id="sesiJudul" placeholder="mis. Pertemuan 8">
+        <label class="lb">Tanggal</label>
+        <input id="sesiTgl" type="date">
+        <div style="display:flex;gap:10px">
+          <div style="flex:1"><label class="lb">Buka</label><input id="sesiBuka" type="time" value="07:00"></div>
+          <div style="flex:1"><label class="lb">Tutup</label><input id="sesiTutup" type="time" value="09:00"></div>
+        </div>
+        <label class="lb">Lokasi Kelas (geofence 100 m)</label>
+        <button class="btn ghost" onclick="ambilLokasi()">📍 Ambil Lokasi Saat Ini</button>
+        <div class="hint" id="lokasiInfo">Belum diatur. Radius default 100 m.</div>
+        <button class="btn" onclick="buatSesi()">Buka Sesi Absen</button>
+      </div>
+    </div>
+
+    <!-- KOLEKTIF -->
+    <div class="screen" id="s-kolektif">
+      <h2 class="title">Absen Kolektif</h2>
+      <div class="sub">Tandai kehadiran anggota secara manual.</div>
+      <input id="kolSearch" placeholder="🔍 Cari nama..." oninput="filterList('kol')" style="margin-bottom:12px">
+      <div id="kolektifBody"></div>
+    </div>
+
+    <!-- EKSPOR -->
+    <div class="screen" id="s-ekspor">
+      <h2 class="title">Ekspor &amp; Sinkron</h2>
+      <div class="sub">Unduh rekap atau kirim ke Deenamic Recap (Notion).</div>
+      <div class="card">
+        <button class="btn" onclick="exportCSV()">📄 Unduh CSV Sesi Ini</button>
+        <button class="btn ok" onclick="kirimNotion()">🔄 Kirim ke Notion (Deenamic Recap)</button>
+        <div class="hint" id="notionInfo">Sinkron satu arah: web → Notion. Perlu endpoint hasil deploy.</div>
+      </div>
+      <div class="divlabel">Zona Bahaya</div>
+      <div class="card">
+        <button class="btn sec" onclick="resetData()">🗑️ Reset Semua Data</button>
+        <div class="hint">Menghapus semua sesi, absensi &amp; izin dari server.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="nav" id="nav"><div class="in" id="navIn"></div></div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ================== DATA STATIS ================== */
+const STUDENTS=[
+  {n:"MOCHAMMAD RIO AL - QURANDY",nim:"2577012474",role:"pengurus",jab:"Admin Utama",panggil:"Rendi"},
+  {n:"KHOIRUN NISA'",nim:"2577012473",role:"pengurus",jab:"Ketua",panggil:"Nisa"},
+  {n:"DEVA RAHMAWATI",nim:"2577012528",role:"pengurus",jab:"Sekretaris",panggil:"Deva"},
+  {n:"ASNA CAHYA FURAIDA",nim:"2577012531",role:"anggota",jab:"Anggota"},
+  {n:"FAHMI HUSAINI",nim:"2577012479",role:"anggota",jab:"Anggota"},
+  {n:"FAIZATUL AFIFAH",nim:"2577012514",role:"anggota",jab:"Anggota"},
+  {n:"FARIHA MAULIDIA",nim:"2577012489",role:"anggota",jab:"Anggota"},
+  {n:"HIKMATUL ISLAMIYAH",nim:"2577012496",role:"anggota",jab:"Anggota"},
+  {n:"M. SOHIHUL ISLAM ALZEVI",nim:"2577012510",role:"anggota",jab:"Anggota"},
+  {n:"MELANDA KRISTI KUSUMA",nim:"2577012536",role:"anggota",jab:"Anggota"},
+  {n:"MOCH. ABDUL ROHIM",nim:"2577012535",role:"anggota",jab:"Anggota"},
+  {n:"MUHAMAD BISMA AGUSTIAN",nim:"2577012492",role:"anggota",jab:"Anggota"},
+  {n:"MUHAMAD ZAILANI",nim:"2577012512",role:"anggota",jab:"Anggota"},
+  {n:"NUR ISLAM MAULANA NUGRAHA",nim:"2477012352",role:"anggota",jab:"Anggota"},
+  {n:"SINDI AULIA WARDANI",nim:"2577012544",role:"anggota",jab:"Anggota"},
+  {n:"SIRUL",nim:"2577012538",role:"anggota",jab:"Anggota"},
+  {n:"WISAM IZZUDDIN FALAH ALHARIRI",nim:"2577012470",role:"anggota",jab:"Anggota"}
+];
+const MATKUL=["Ushul Fiqh","Filsafat Pendidikan Islam","Sejarah Pendidikan Islam","Qowaidul Fiqih","Teori Belajar & Pembelajaran","Psikologi Belajar","Pengembangan Kurikulum PAI","Pengembangan Profesi Keguruan","English For Spesific Purpose"];
+
+/* ================== KONFIG SUPABASE ================== */
+const SUPABASE_URL = "https://fktjvxjerdjcwyzahgdq.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdGp2eGplcmRqY3d5emFoZ2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwOTQ0NjMsImV4cCI6MjA5OTY3MDQ2M30.G3LuHXgj4hbF7wJQ9lfV8ksPYvU4g7nHS6cl1mgYxW8";
+/* Endpoint hasil deploy Vercel untuk sinkron ke Notion (isi setelah deploy). */
+const NOTION_SYNC_URL = "/api/absen";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ================== STATE ================== */
+const STATE={s:null,a:[],i:[]};
+const DB={get s(){return STATE.s},get a(){return STATE.a},get i(){return STATE.i}};
+let ME=null, jenisSel="Izin", dashQ='', kolQ='';
+
+/* ================== MAPPING ================== */
+const byNim=nim=>STUDENTS.find(x=>x.nim===nim)||{n:nim,jab:''};
+const namaByNim=nim=>byNim(nim).n;
+const mapSesi=r=>({id:r.id,matkul:r.matkul,judul:r.judul,tgl:r.tanggal,buka:r.buka?String(r.buka).slice(0,5):'',tutup:r.tutup?String(r.tutup).slice(0,5):'',radius:r.radius,lat:r.lat,lon:r.lon,link:r.link});
+const mapAbsen=r=>({sid:r.sesi_id,nim:r.nim,nama:namaByNim(r.nim),status:r.status,jam:r.jam?String(r.jam).slice(0,5):'',lat:r.lat,lon:r.lon,by:r.dicatat_oleh,ts:r.created_at?Date.parse(r.created_at):Date.now()});
+const mapIzin=r=>({nim:r.nim,nama:namaByNim(r.nim),jenis:r.jenis,matkul:r.matkul,tgl:r.tanggal,alasan:r.alasan,ts:r.created_at?Date.parse(r.created_at):Date.now()});
+
+/* ================== DATA LAYER (Supabase) ================== */
+async function loadAll(){
+  try{
+    const {data:ses}=await sb.from('sesi').select('*').eq('aktif',true).order('created_at',{ascending:false}).limit(1);
+    STATE.s = ses&&ses[0] ? mapSesi(ses[0]) : null;
+    if(STATE.s){
+      const {data:ab}=await sb.from('absensi').select('*').eq('sesi_id',STATE.s.id);
+      STATE.a=(ab||[]).map(mapAbsen);
+    }else STATE.a=[];
+    const {data:iz}=await sb.from('izin').select('*').order('created_at',{ascending:false});
+    STATE.i=(iz||[]).map(mapIzin);
+  }catch(e){console.error(e);toast('Gagal memuat data');}
+}
+async function apiCreateSesi(o){
+  await sb.from('sesi').update({aktif:false}).eq('aktif',true);
+  const {data,error}=await sb.from('sesi').insert({matkul:o.matkul,judul:o.judul,tanggal:o.tgl,buka:o.buka,tutup:o.tutup,lat:o.lat,lon:o.lon,radius:o.radius,link:o.link,dibuat_oleh:ME.n,aktif:true}).select().single();
+  if(error){toast('Gagal buat sesi');console.error(error);return false}
+  o.id=data.id;STATE.s=o;STATE.a=[];return true;
+}
+async function apiCloseSesi(){
+  if(STATE.s)await sb.from('sesi').update({aktif:false}).eq('id',STATE.s.id);
+  STATE.s=null;STATE.a=[];
+}
+async function apiUpsertAbsen(row){
+  const {error}=await sb.from('absensi').upsert({sesi_id:row.sid,nim:row.nim,status:row.status,jam:row.jam,lat:row.lat,lon:row.lon,dicatat_oleh:row.by},{onConflict:'sesi_id,nim'});
+  if(error){toast('Gagal simpan absensi');console.error(error);return false}
+  const a=STATE.a.filter(x=>!(x.sid===row.sid&&x.nim===row.nim));a.push(row);STATE.a=a;return true;
+}
+async function apiCreateIzin(row){
+  const {error}=await sb.from('izin').insert({nim:row.nim,jenis:row.jenis,matkul:row.matkul,tanggal:row.tgl,alasan:row.alasan});
+  if(error){toast('Gagal kirim izin');console.error(error);return false}
+  STATE.i=[row,...STATE.i];return true;
+}
+async function apiReset(){
+  const z='00000000-0000-0000-0000-000000000000';
+  await sb.from('absensi').delete().neq('id',z);
+  await sb.from('izin').delete().neq('id',z);
+  await sb.from('sesi').delete().neq('id',z);
+  STATE.s=null;STATE.a=[];STATE.i=[];
+}
+function subscribeRealtime(){
+  if(window.__rt)return;window.__rt=true;
+  sb.channel('rt-abs')
+    .on('postgres_changes',{event:'*',schema:'public',table:'absensi'},refreshCurrent)
+    .on('postgres_changes',{event:'*',schema:'public',table:'sesi'},refreshCurrent)
+    .on('postgres_changes',{event:'*',schema:'public',table:'izin'},refreshCurrent)
+    .subscribe();
+}
+async function refreshCurrent(){
+  await loadAll();
+  const on=document.querySelector('.nav button.on');if(!on)return;
+  renderScreen(on.dataset.t);
+}
+
+/* ================== HELPERS ================== */
+const $=id=>document.getElementById(id);
+function toast(m,d){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(window.__t);window.__t=setTimeout(()=>t.classList.remove('show'),d||2200)}
+function initials(n){const p=n.trim().split(' ').filter(Boolean);return((p[0]||'')[0]||'').toUpperCase()+((p[1]||'')[0]||'').toUpperCase()}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function badge(s){return '<span class="badge b-'+s+'">'+s+'</span>'}
+function dist(la1,lo1,la2,lo2){const R=6371000,t=x=>x*Math.PI/180;
+  const dla=t(la2-la1),dlo=t(lo2-lo1);
+  const a=Math.sin(dla/2)**2+Math.cos(t(la1))*Math.cos(t(la2))*Math.sin(dlo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
+
+/* ================== LOGIN ================== */
+function fillNames(){
+  const sel=$('loginName');
+  STUDENTS.slice().sort((a,b)=>a.n.localeCompare(b.n)).forEach(s=>{
+    const o=document.createElement('option');o.value=s.nim;o.textContent=s.n;sel.appendChild(o)});
+  const im=$('izinMatkul'),sm=$('sesiMatkul');
+  MATKUL.forEach(m=>{im.appendChild(new Option(m,m));sm.appendChild(new Option(m,m))});
+  $('izinTgl').value=today();$('sesiTgl').value=today();
+}
+async function doLogin(){
+  const nim=$('loginName').value, pin=$('loginPin').value.trim();
+  if(!nim){toast('Pilih nama dulu');return}
+  if(pin!==nim){toast('NIM (PIN) salah');return}
+  ME=STUDENTS.find(s=>s.nim===nim);
+  $('meBox').style.display='block';
+  $('logoutBtn').style.display='block';
+  $('meName').textContent=(ME.panggil||ME.n.split(' ')[0]);
+  $('meRole').innerHTML=ME.role==='pengurus'
+    ?'<span class="badge b-pengurus" style="font-size:10px;padding:1px 7px">Pengurus</span>'
+    :'<span class="badge b-anggota" style="font-size:10px;padding:1px 7px">Anggota</span>';
+  toast('Memuat data...');
+  await loadAll();
+  subscribeRealtime();
+  buildNav();
+  go(ME.role==='pengurus'?'dash':'absen');
+  toast('Selamat datang, '+(ME.panggil||ME.n.split(' ')[0])+'!');
+}
+function logout(){ME=null;$('meBox').style.display='none';$('logoutBtn').style.display='none';
+  $('nav').style.display='none';$('loginPin').value='';$('loginName').value='';
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('s-login').classList.add('active');$('main').scrollTop=0}
+
+/* ================== NAV ================== */
+const NAVS={
+  pengurus:[['dash','📊','Dashboard'],['sesi','➕','Buat Sesi'],['kolektif','📋','Kolektif'],['absen','✓','Absen'],['ekspor','📤','Ekspor']],
+  anggota:[['absen','✓','Absen'],['izin','✍️','Izin'],['riwayat','🕓','Riwayat']]
+};
+function buildNav(){
+  const nav=$('navIn');nav.innerHTML='';$('nav').style.display='block';
+  NAVS[ME.role].forEach(([id,ic,lb])=>{
+    const b=document.createElement('button');b.dataset.t=id;
+    b.innerHTML='<span class="ic">'+ic+'</span>'+lb;
+    b.onclick=()=>go(id);nav.appendChild(b)});
+}
+function renderScreen(id){
+  if(id==='absen')renderAbsen();
+  else if(id==='izin')renderIzin();
+  else if(id==='riwayat')renderRiwayat();
+  else if(id==='dash')renderDash();
+  else if(id==='sesi')renderSesiAktif();
+  else if(id==='kolektif')renderKolektif();
+}
+async function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $('s-'+id).classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===id));
+  $('main').scrollTop=0;
+  if(['absen','izin','riwayat','dash','kolektif'].includes(id))await loadAll();
+  renderScreen(id);
+}
+
+/* ================== ABSEN ================== */
+function renderAbsen(){
+  $('absHi').textContent='Halo, '+(ME.panggil||ME.n.split(' ')[0])+' 👋';
+  const s=DB.s,box=$('absenBody');
+  if(!s){box.innerHTML='<div class="card"><div class="empty">Belum ada sesi absen yang dibuka.<br>Tunggu pengurus membuka sesi.</div></div>';return}
+  const mine=DB.a.find(x=>x.nim===ME.nim);
+  let h='<div class="card tint"><b>'+s.matkul+'</b> · '+(s.judul||'')+
+    '<div class="hint">'+s.tgl+' · '+s.buka+'–'+s.tutup+(s.lat?' · 📍 geofence 100 m':'')+'</div></div>';
+  if(mine){
+    h+='<div class="card"><div class="big"><div class="big-em">✅</div>'+
+      '<h2 class="title" style="margin-top:8px">Sudah Absen</h2>'+
+      '<div class="sub">Status: '+badge(mine.status)+' · pukul '+mine.jam+'</div></div></div>';
+  }else{
+    h+='<div class="card"><label class="lb">Tandai kehadiran</label>'+
+      '<div class="absbtn"><button class="h" onclick="absenSekarang(\'Hadir\')">Hadir</button>'+
+      '<button class="t" onclick="absenSekarang(\'Terlambat\')">Terlambat</button></div>'+
+      '<div class="hint">Lokasimu dicek otomatis terhadap radius kelas.</div></div>';
+  }
+  box.innerHTML=h;
+}
+function absenSekarang(status){
+  const s=DB.s;if(!s)return;
+  const save=(lat,lon)=>{
+    let far=false;
+    if(s.lat&&lat!=null){const d=dist(lat,lon,s.lat,s.lon);if(d>(s.radius||100))far=true}
+    if(far&&!confirm('Kamu terdeteksi di luar radius kelas. Tetap kirim untuk diverifikasi pengurus?'))return;
+    const hm=new Date().toTimeString().slice(0,5);
+    apiUpsertAbsen({sid:s.id,nim:ME.nim,nama:ME.n,status,jam:hm,lat,lon,by:'mandiri',ts:Date.now()})
+      .then(ok=>{if(ok){toast('Absensi tersimpan: '+status);renderAbsen()}});
+  };
+  if(!navigator.geolocation){save(null,null);return}
+  toast('Mengecek lokasi...');
+  navigator.geolocation.getCurrentPosition(
+    p=>save(p.coords.latitude,p.coords.longitude),
+    ()=>save(null,null),{timeout:8000});
+}
+
+/* ================== IZIN ================== */
+function setJenis(j){jenisSel=j;$('jz-Izin').classList.toggle('on',j==='Izin');$('jz-Sakit').classList.toggle('on',j==='Sakit')}
+function renderIzin(){}
+function submitIzin(){
+  const matkul=$('izinMatkul').value,tgl=$('izinTgl').value,alasan=$('izinAlasan').value.trim();
+  if(!alasan){toast('Isi alasan dulu');return}
+  apiCreateIzin({nim:ME.nim,nama:ME.n,jenis:jenisSel,matkul,tgl,alasan,ts:Date.now()}).then(ok=>{
+    if(ok){$('izinAlasan').value='';toast('Pengajuan '+jenisSel+' terkirim')}});
+}
+
+/* ================== RIWAYAT ================== */
+function renderRiwayat(){
+  const box=$('riwayatBody');
+  const myA=DB.a.filter(x=>x.nim===ME.nim);
+  const myI=DB.i.filter(x=>x.nim===ME.nim);
+  let h='';
+  if(DB.s&&myA.length){const m=myA[0];h+='<div class="card"><div class="divlabel" style="margin-top:0">Sesi Aktif</div>'+
+    '<div class="row"><div class="nm"><b>'+DB.s.matkul+'</b><span>'+DB.s.tgl+' · '+m.jam+'</span></div>'+badge(m.status)+'</div></div>'}
+  h+='<div class="divlabel">Riwayat Izin / Sakit</div><div class="card">';
+  if(!myI.length)h+='<div class="empty">Belum ada pengajuan izin.</div>';
+  else myI.forEach(x=>{h+='<div class="row"><div class="nm"><b>'+x.matkul+'</b><span>'+x.tgl+' · '+x.alasan+'</span></div>'+badge(x.jenis)+'</div>'});
+  h+='</div>';
+  box.innerHTML=h;
+}
+
+/* ================== DASHBOARD ================== */
+function statusOf(nim){const a=DB.a.find(x=>x.nim===nim);if(a)return a.status;
+  const iz=DB.i.find(x=>x.nim===nim&&DB.s&&x.tgl===DB.s.tgl);if(iz)return iz.jenis;return 'Belum'}
+function renderDash(){
+  const s=DB.s;
+  $('dashSub').textContent=s?(s.matkul+' · '+(s.judul||'')):'Belum ada sesi dibuka.';
+  let hadir=0,telat=0,izin=0,belum=0;
+  STUDENTS.forEach(st=>{const v=statusOf(st.nim);
+    if(v==='Hadir')hadir++;else if(v==='Terlambat')telat++;
+    else if(v==='Izin'||v==='Sakit')izin++;else belum++});
+  $('dashStats').innerHTML='<div class="stats">'+
+    '<div class="stat g"><b>'+hadir+'</b><span>Hadir</span></div>'+
+    '<div class="stat o"><b>'+telat+'</b><span>Telat</span></div>'+
+    '<div class="stat b"><b>'+izin+'</b><span>Izin</span></div>'+
+    '<div class="stat r"><b>'+belum+'</b><span>Belum</span></div></div>';
+  $('dashLink').innerHTML=s&&s.link?'<div class="linkbox">🔗 '+s.link+'<button class="btn ghost" style="margin:0;width:auto;padding:6px 10px;font-size:12px" onclick="copyLink(\''+s.link+'\')">Salin</button></div>':'';
+  let h='';STUDENTS.forEach(st=>{const v=statusOf(st.nim);
+    h+='<div class="row" data-name="'+st.n.toLowerCase()+'"><div class="av">'+initials(st.n)+'</div>'+
+      '<div class="nm"><b>'+st.n+'</b><span>'+st.jab+'</span></div>'+badge(v)+'</div>'});
+  $('dashList').innerHTML=h;if(dashQ)filterList('dash');
+}
+function filterList(p){const el=$(p+'Search');if(!el)return;const q=(el.value||'').toLowerCase();
+  if(p==='dash')dashQ=q;else kolQ=q;
+  const cont=$(p==='dash'?'dashList':'kolList');if(!cont)return;
+  cont.querySelectorAll('[data-name]').forEach(x=>{x.style.display=x.dataset.name.includes(q)?'':'none'})}
+function copyLink(l){navigator.clipboard&&navigator.clipboard.writeText(l);toast('Link disalin')}
+
+/* ================== BUAT SESI ================== */
+let pendingLoc=null;
+function ambilLokasi(){
+  if(!navigator.geolocation){toast('GPS tidak tersedia');return}
+  toast('Mengambil lokasi...');
+  navigator.geolocation.getCurrentPosition(p=>{
+    pendingLoc={lat:p.coords.latitude,lon:p.coords.longitude};
+    $('lokasiInfo').textContent='Lokasi terkunci · radius 100 m.';toast('Lokasi tersimpan')},
+    ()=>toast('Gagal ambil lokasi'),{timeout:8000});
+}
+function buatSesi(){
+  const matkul=$('sesiMatkul').value,judul=$('sesiJudul').value.trim()||'Sesi Absen',
+    tgl=$('sesiTgl').value,buka=$('sesiBuka').value,tutup=$('sesiTutup').value;
+  const link='absensi.kelas/'+Math.random().toString(36).slice(2,8);
+  apiCreateSesi({matkul,judul,tgl,buka,tutup,radius:100,
+    lat:pendingLoc?pendingLoc.lat:null,lon:pendingLoc?pendingLoc.lon:null,link}).then(ok=>{
+    if(ok){toast('Sesi dibuka!');pendingLoc=null;$('sesiJudul').value='';
+      $('lokasiInfo').textContent='Belum diatur. Radius default 100 m.';renderSesiAktif()}});
+}
+function renderSesiAktif(){
+  const s=DB.s,box=$('sesiAktifBox');
+  if(!s){box.innerHTML='';$('sesiFormCard').style.display='block';return}
+  $('sesiFormCard').style.display='none';
+  box.innerHTML='<div class="card tint"><div class="divlabel" style="margin-top:0">Sesi Aktif</div>'+
+    '<b>'+s.matkul+'</b> · '+(s.judul||'')+'<div class="hint">'+s.tgl+' · '+s.buka+'–'+s.tutup+'</div>'+
+    '<div class="linkbox">🔗 '+s.link+'<button class="btn ghost" style="margin:0;width:auto;padding:6px 10px;font-size:12px" onclick="copyLink(\''+s.link+'\')">Salin</button></div>'+
+    '<button class="btn sec" onclick="tutupSesi()">Tutup Sesi</button></div>';
+}
+function tutupSesi(){if(confirm('Tutup sesi absen ini?'))apiCloseSesi().then(()=>{toast('Sesi ditutup');renderSesiAktif()})}
+
+/* ================== KOLEKTIF ================== */
+function renderKolektif(){
+  const s=DB.s,box=$('kolektifBody');
+  if(!s){box.innerHTML='<div class="card"><div class="empty">Buka sesi dulu untuk absen kolektif.</div></div>';return}
+  let h='<div class="card tint"><b>'+s.matkul+'</b> · '+(s.judul||'')+'<div class="hint">Ketuk status untuk tiap anggota</div></div><div class="card" id="kolList">';
+  const STAT=['Hadir','Terlambat','Izin','Sakit','Alfa'];
+  STUDENTS.forEach(st=>{const cur=statusOf(st.nim);
+    h+='<div class="kolrow" data-name="'+st.n.toLowerCase()+'"><div class="top"><div class="av">'+initials(st.n)+'</div>'+
+      '<div class="nm"><b>'+st.n+'</b><span>'+st.jab+'</span></div>'+badge(cur)+'</div><div class="chips">';
+    STAT.forEach(v=>{h+='<button class="chip'+(cur===v?' on':'')+'" onclick="markKol(\''+st.nim+'\',\''+v+'\')">'+v+'</button>'});
+    h+='</div></div>'});
+  h+='</div>';box.innerHTML=h;if(kolQ)filterList('kol');
+}
+function markKol(nim,status){
+  const s=DB.s;const st=byNim(nim);const now=new Date().toTimeString().slice(0,5);
+  apiUpsertAbsen({sid:s.id,nim,nama:st.n,status,jam:now,lat:null,lon:null,by:'pengurus:'+(ME.panggil||ME.n.split(' ')[0]),ts:Date.now()})
+    .then(ok=>{if(ok)renderKolektif()});
+}
+
+/* ================== EKSPOR / SYNC ================== */
+function exportCSV(){
+  const s=DB.s;if(!s){toast('Belum ada sesi');return}
+  let rows=[['Nama','NIM','Mata Kuliah','Tanggal','Status','Jam','Dicatat Oleh']];
+  STUDENTS.forEach(st=>{const a=DB.a.find(x=>x.nim===st.nim);
+    rows.push([st.n,st.nim,s.matkul,s.tgl,a?a.status:'Alfa',a?a.jam:'-',a?a.by:'-'])});
+  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});const u=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=u;a.download='absensi_'+s.matkul.replace(/\s+/g,'_')+'_'+s.tgl+'.csv';a.click();
+  URL.revokeObjectURL(u);toast('CSV diunduh');
+}
+async function kirimNotion(){
+  const s=DB.s;if(!s){toast('Belum ada sesi');return}
+  if(!NOTION_SYNC_URL){toast('Endpoint Notion belum dikonfigurasi (deploy dulu)');return}
+  toast('Mengirim ke Notion...');
+  const payload={matkul:s.matkul,tanggal:s.tgl,judul:s.judul,
+    absensi:DB.a.map(x=>({nim:x.nim,nama:x.nama,status:x.status,jam:x.jam}))};
+  try{const r=await fetch(NOTION_SYNC_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    let data={};try{data=await r.json()}catch(_){}
+    if(r.ok&&data.ok){const h=data.hasil||{};toast('Terkirim ✅ dibuat '+(h.dibuat||0)+', diperbarui '+(h.diperbarui||0)+((h.gagal&&h.gagal.length)?(', gagal '+h.gagal.length+': '+h.gagal.join('; ')):''),7000)}
+    else{toast('Server menolak: '+(data.error||('HTTP '+r.status)),8000)}}
+  catch(e){toast('Tak tersambung: '+(e.message||e),8000)}
+}
+function resetData(){if(confirm('Hapus SEMUA data (sesi, absensi, izin) dari server?'))
+  apiReset().then(()=>{toast('Data direset');go('dash')})}
+
+/* ================== INIT ================== */
+fillNames();
+</script>
+</body>
+</html>
