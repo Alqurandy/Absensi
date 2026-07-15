@@ -8,10 +8,11 @@ const NOTION_TOKEN = process.env.NOTION_TOKEN;
 const NOTION_VERSION = "2025-09-03";
 const API = "https://api.notion.com/v1";
 ​
-// Satu-satunya ID yang ditanam: data source "Daftar Mahasiswa".
-const MAHASISWA_DS = "19e02d6ace40451e871dd10b2f303584";
+// ID awal "Daftar Mahasiswa" (boleh ID database ATAU ID data source -
+// kode akan menerjemahkannya otomatis).
+const MAHASISWA_ID = "19e02d6ace40451e871dd10b2f303584";
 ​
-// Nama matkul di web  ->  nama properti relasi di "Daftar Mahasiswa".
+// Nama matkul di web -> nama properti relasi di "Daftar Mahasiswa".
 // ID tabel Absensi tiap matkul ditemukan OTOMATIS dari relasi ini.
 const MATKUL_TO_REL = {
   "Ushul Fiqh":                    "Absensi Ushul Fiqh",
@@ -40,28 +41,46 @@ async function notion(path, method, body) {
   return j;
 }
 ​
+// Ambil objek data source "Daftar Mahasiswa", menerima ID database maupun ID data source.
+let _mds = null;
+async function mahasiswaDS() {
+  if (_mds) return _mds;
+  try {
+    _mds = await notion(`/data_sources/${MAHASISWA_ID}`, "GET");
+    return _mds;
+  } catch (e1) {
+    try {
+      const db = await notion(`/databases/${MAHASISWA_ID}`, "GET");
+      const list = db.data_sources || [];
+      if (list.length) { _mds = await notion(`/data_sources/${list[0].id}`, "GET"); return _mds; }
+    } catch (e2) { /* fallthrough */ }
+    throw new Error("Tak bisa akses 'Daftar Mahasiswa'. Pastikan integration 'Absensi Sync' sudah di-Connect ke Deenamic Recap (izin), dan ID benar. Detail: " + e1.message);
+  }
+}
+​
 // Temukan data_source_id tabel Absensi matkul dari skema relasi Daftar Mahasiswa.
 async function matkulDsId(matkul) {
   const rel = MATKUL_TO_REL[matkul];
   if (!rel) throw new Error("Mata kuliah tidak dikenal: " + matkul);
-  const ds = await notion(`/data_sources/${MAHASISWA_DS}`, "GET");
+  const ds = await mahasiswaDS();
   const prop = (ds.properties || {})[rel];
   if (!prop || !prop.relation || !prop.relation.data_source_id)
-    throw new Error("Relasi '" + rel + "' tak ditemukan di Daftar Mahasiswa. Cek nama kolomnya.");
+    throw new Error("Relasi '" + rel + "' tak ditemukan di Daftar Mahasiswa.");
   return prop.relation.data_source_id;
 }
 ​
 // Peta { nama(lowercase) -> pageId } dari Daftar Mahasiswa (title = nama).
 async function petaMahasiswa() {
+  const ds = await mahasiswaDS();
   const map = {};
   let cursor;
   do {
     const body = { page_size: 100 };
     if (cursor) body.start_cursor = cursor;
-    const res = await notion(`/data_sources/${MAHASISWA_DS}/query`, "POST", body);
+    const res = await notion(`/data_sources/${ds.id}/query`, "POST", body);
     for (const pg of res.results) {
       const tp = Object.values(pg.properties).find(p => p.type === "title");
-      const nama = (tp && tp.title || []).map(t => t.plain_text).join("").trim().toLowerCase();
+      const nama = ((tp && tp.title) || []).map(t => t.plain_text).join("").trim().toLowerCase();
       if (nama) map[nama] = pg.id;
     }
     cursor = res.has_more ? res.next_cursor : null;
