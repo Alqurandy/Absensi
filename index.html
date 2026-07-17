@@ -49,6 +49,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 #splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;
   background:linear-gradient(150deg,#0b5cad,#2f86e0 60%,#61b3f5);transition:opacity .6s,visibility .6s}
 #splash.hide{opacity:0;visibility:hidden}
+.sp-quote{max-width:320px;margin-top:22px;padding:0 26px;font-size:12.5px;line-height:1.65;color:rgba(255,255,255,.9);text-align:center;font-style:italic;animation:fadeup .8s .9s both}
 .sp-logo{width:116px;height:116px;border-radius:30px;background:#fff url('icon-512.png') center/cover no-repeat;
   box-shadow:0 18px 50px rgba(0,0,0,.3);animation:pop .9s cubic-bezier(.2,.9,.3,1.4),bob 3s ease-in-out .9s infinite}
 .sp-ring{position:absolute;width:180px;height:180px;border-radius:50%;border:3px solid rgba(255,255,255,.5);
@@ -311,7 +312,10 @@ textarea{resize:vertical;min-height:80px}
   <div class="sp-title">Hub Deenamic</div>
   <div class="sp-sub">PAI Semester III · Deenamic ’25</div>
   <div class="sp-dots"><i></i><i></i><i></i></div>
+  <div class="sp-quote" id="spQuote"></div>
 </div>
+
+<script>(function(){var K=["Sesungguhnya bersama kesulitan ada kemudahan. — QS. Al-Insyirah: 6","Barangsiapa menempuh jalan untuk menuntut ilmu, Allah mudahkan baginya jalan menuju surga. — HR. Muslim","Sebaik-baik manusia adalah yang paling bermanfaat bagi sesama. — HR. Ahmad","Bacalah dengan menyebut nama Tuhanmu yang menciptakan. — QS. Al-'Alaq: 1","Menuntut ilmu itu wajib atas setiap muslim. — HR. Ibnu Majah","Ya Tuhanku, tambahkanlah kepadaku ilmu. — QS. Thaha: 114","Sesungguhnya Allah tidak mengubah keadaan suatu kaum sampai mereka mengubah diri mereka sendiri. — QS. Ar-Ra'd: 11","Sesungguhnya setiap amal tergantung pada niatnya. — HR. Bukhari & Muslim","Sebaik-baik kalian adalah yang mempelajari Al-Qur'an dan mengajarkannya. — HR. Bukhari","Siapa bersungguh-sungguh, ia akan berhasil. — Man jadda wajada","Waktu bagaikan pedang; bila tak kaugunakan, ia akan memotongmu.","Ilmu tanpa amal bagaikan pohon tanpa buah.","Doa adalah senjata seorang mukmin. — HR. Al-Hakim","Barangsiapa keluar menuntut ilmu, ia di jalan Allah hingga ia kembali. — HR. Tirmidzi"];var d=new Date();var day=Math.floor((d-new Date(d.getFullYear(),0,0))/864e5);var e=document.getElementById("spQuote");if(e)e.textContent="“"+K[day%K.length]+"”";})();</script>
 
 <!-- ============ BACKGROUND ============ -->
 <div class="bgwrap">
@@ -392,6 +396,18 @@ textarea{resize:vertical;min-height:80px}
         <div id="infoBody"></div>
       </div>
 
+      <!-- ===== JADWAL PRESENTASI ===== -->
+      <div class="screen" id="s-presentasi">
+        <div class="hero"><span class="em">🎤</span><div><h2 class="title">Jadwal Presentasi</h2><div class="sub">Giliran presentasi kelompok per mata kuliah</div></div></div>
+        <div id="presBody"></div>
+      </div>
+
+      <!-- ===== JADWAL SHALAT ===== -->
+      <div class="screen" id="s-shalat">
+        <div class="hero"><span class="em">🕌</span><div><h2 class="title">Jadwal Shalat</h2><div class="sub">Waktu shalat &amp; arah kiblat sesuai lokasimu</div></div></div>
+        <div id="shalatBody"></div>
+      </div>
+
       <!-- ===== KOTAK SARAN ===== -->
       <div class="screen" id="s-saran">
         <div class="hero"><span class="em">📨</span><div><h2 class="title">Kotak Saran</h2><div class="sub">Saran, kritik &amp; laporan bug untuk kelas</div></div></div>
@@ -463,7 +479,8 @@ const PERM={
   absen:["2577012474","2577012528","2577012473"],                          /* Rio, Deva, Nisa */
   kas:["2577012489","2577012474"],                                                       /* Fariha */
   tugas:["2577012474","2577012528","2577012473","2577012544"],            /* Rio, Deva, Nisa, Sindi */
-  saran:["2577012474","2577012473","2577012528"]                           /* Rio, Nisa, Deva */
+  saran:["2577012474","2577012473","2577012528"],                          /* Rio, Nisa, Deva */
+  presentasi:["2577012474","2577012528","2577012473","2577012544"]         /* Rio, Deva, Nisa, Sindi */
 };
 const can=f=>!!(ME&&PERM[f]&&PERM[f].includes(ME.nim));
 const SUPER=["2577012473","2577012474"]; /* Nisa', Rendi */
@@ -476,7 +493,7 @@ const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 /* ================== STATE ================== */
-const STATE={s:null,a:[],i:[],kas:[],trx:[],tugas:[],qna:[],qbal:[],qlike:[],saran:[],jadwal:[],dosen:[],rekapSes:[],rekapAbs:[]};
+const STATE={s:null,a:[],i:[],kas:[],trx:[],tugas:[],qna:[],qbal:[],qlike:[],saran:[],jadwal:[],dosen:[],rekapSes:[],rekapAbs:[],pres:[]};
 const DB={get s(){return STATE.s},get a(){return STATE.a},get i(){return STATE.i}};
 let ME=null,jenisSel="Izin",dashQ='',kolQ='',absTab='absen';
 
@@ -549,6 +566,118 @@ async function loadQna(){
 async function loadSaran(){const {data:s}=await sb.from('saran').select('*').order('created_at',{ascending:false});STATE.saran=s||[]}
 async function loadQnaSes(){const {data}=await sb.from('qna_sesi').select('*').eq('aktif',true).order('created_at',{ascending:false}).limit(1);STATE.qnaSes=data&&data[0]?data[0]:null}
 
+/* ================== JADWAL PRESENTASI ================== */
+let presMatkulF='(Semua)';let presEditing=null;
+async function loadPresentasi(){const {data}=await sb.from('presentasi').select('*').order('tanggal',{ascending:true});STATE.pres=data||[]}
+async function onPresChange(){await loadPresentasi();if(curMenu==='presentasi')renderPresentasi()}
+function presDaysLeft(tgl){if(!tgl)return null;const d=new Date(tgl+'T00:00:00');const now=new Date();now.setHours(0,0,0,0);return Math.round((d-now)/86400000)}
+function presCountdown(tgl){const n=presDaysLeft(tgl);if(n===null)return '';if(n<0)return 'Sudah lewat';if(n===0)return 'HARI INI';if(n===1)return 'Besok';return n+' hari lagi'}
+function presFmt(tgl){if(!tgl)return '-';try{return new Date(tgl+'T00:00:00').toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}catch(_){return tgl}}
+function setPresF(i){presMatkulF=(window.__presMk&&window.__presMk[i])||'(Semua)';renderPresentasi()}
+function formPres(id){presEditing=id||'new';renderPresentasi()}
+function cancelPres(){presEditing=null;renderPresentasi()}
+function presFormHtml(){const ed=(presEditing&&presEditing!=='new')?STATE.pres.find(p=>p.id===presEditing):null;
+  const opts=(typeof MATKUL!=='undefined'?MATKUL:[]).map(m=>`<option value='${esc(m)}' ${ed&&ed.matkul===m?'selected':''}>${esc(m)}</option>`).join('');
+  return `<div class='card solid'><div class='divlabel' style='margin-top:0'>${ed?'✏️ Edit':'➕ Tambah'} Jadwal Presentasi</div>`
+    +`<label class='lb'>Mata Kuliah</label><select id='pfMatkul'><option value=''>— Pilih —</option>${opts}</select>`
+    +`<label class='lb'>Kelompok</label><input id='pfKel' value='${ed?esc(ed.kelompok||''):''}' placeholder='mis. Kelompok 1'>`
+    +`<label class='lb'>Judul / Tema</label><input id='pfJudul' value='${ed?esc(ed.judul||''):''}' placeholder='mis. Konsep Dasar Ushul Fiqh'>`
+    +`<label class='lb'>Anggota (pisah koma)</label><input id='pfAnggota' value='${ed?esc(ed.anggota||''):''}' placeholder='Rio, Nisa, Deva'>`
+    +`<label class='lb'>Tanggal</label><input id='pfTgl' type='date' value='${ed?esc(ed.tanggal||''):''}'>`
+    +`<label class='lb'>Catatan (opsional)</label><input id='pfCatatan' value='${ed?esc(ed.catatan||''):''}' placeholder='mis. Ruang B2'>`
+    +`<div style='display:flex;gap:8px;margin-top:12px'><button class='btn' onclick='savePres()'>💾 Simpan</button><button class='btn sec' onclick='cancelPres()'>Batal</button></div></div>`;
+}
+async function savePres(){const matkul=$('pfMatkul').value;const kelompok=$('pfKel').value.trim();const judul=$('pfJudul').value.trim();const anggota=$('pfAnggota').value.trim();const tanggal=$('pfTgl').value;const catatan=$('pfCatatan').value.trim();
+  if(!matkul){toast('Pilih mata kuliah');return}if(!tanggal){toast('Isi tanggal presentasi');return}
+  const row={matkul,kelompok,judul,anggota,tanggal,catatan,dibuat_oleh:ME.n};let error;
+  if(presEditing&&presEditing!=='new'){({error}=await sb.from('presentasi').update(row).eq('id',presEditing))}
+  else{({error}=await sb.from('presentasi').insert({...row,status:'terjadwal'}))}
+  if(error){toast('Gagal menyimpan jadwal');console.error(error);return}
+  presEditing=null;await loadPresentasi();renderPresentasi();toast('Jadwal tersimpan ✅')}
+async function togglePresDone(id){const p=STATE.pres.find(x=>x.id===id);if(!p)return;const ns=p.status==='selesai'?'terjadwal':'selesai';const {error}=await sb.from('presentasi').update({status:ns}).eq('id',id);if(error){toast('Gagal memperbarui');return}await loadPresentasi();renderPresentasi()}
+async function hapusPres(id){const ok=await confirmBox('Hapus jadwal presentasi ini?',{emoji:'🗑️',title:'Hapus Jadwal',yes:'Ya, hapus',no:'Batal'});if(!ok)return;const {error}=await sb.from('presentasi').delete().eq('id',id);if(error){toast('Gagal menghapus');return}await loadPresentasi();renderPresentasi();toast('Jadwal dihapus')}
+async function mulaiQnaFromPres(id){const p=STATE.pres.find(x=>x.id===id);await go('qna');const j=$('qsJudul'),m=$('qsMatkul');if(j&&p){j.value=p.judul||''}if(m&&p){m.value=p.matkul||''}if(j){try{j.scrollIntoView({behavior:'smooth',block:'center'})}catch(_){}toast('Judul & matkul terisi — masukkan password lalu Mulai Sesi 🎤')}else{toast('Sesi QnA sedang aktif — akhiri dulu untuk mulai sesi baru')}}
+function presCard(p,adm){const done=p.status==='selesai';const n=presDaysLeft(p.tanggal);const today=n===0&&!done;
+  let h=`<div class='qcard' style='${done?'opacity:.55':''}'>`;
+  h+=`<div style='display:flex;justify-content:space-between;gap:8px;align-items:flex-start'><div><b>${esc(p.kelompok||'Kelompok')}</b> <span class='badge b-Izin' style='font-size:10px'>${esc(p.matkul||'')}</span></div><span class='badge ${done?'b-Hadir':(today?'b-Belum':'b-Izin')}'>${done?'✅ Selesai':(today?'🔥 Hari ini':presCountdown(p.tanggal))}</span></div>`;
+  h+=`<div style='font-weight:700;margin-top:6px'>${esc(p.judul||'-')}</div>`;
+  h+=`<div class='mini' style='margin-top:4px'>👥 ${esc(p.anggota||'-')}</div>`;
+  h+=`<div class='mini' style='margin-top:2px'>🗓️ ${esc(presFmt(p.tanggal))}${p.catatan?' · '+esc(p.catatan):''}</div>`;
+  if(p.materi_url)h+=`<div class='mini' style='margin-top:4px'>📎 <a href='${esc(p.materi_url)}' target='_blank' style='color:inherit;text-decoration:underline'>${esc(p.materi_nama||'Materi / Slide')}</a></div>`;
+   if(adm){h+=`<div class='chips' style='margin-top:8px'><label class='chip' style='cursor:pointer;margin:0'>📎 ${p.materi_url?'Ganti':'Upload'} Slide<input type='file' accept='.pdf,.ppt,.pptx,.doc,.docx' style='display:none' onchange="uploadPresFile('${p.id}',this)"></label>${p.materi_url?`<button class='chip' onclick="hapusPresFile('${p.id}')">🗑️ Slide</button>`:''}<button class='chip' onclick="mulaiQnaFromPres('${p.id}')">💬 Mulai QnA</button><button class='chip${done?' on':''}' onclick="togglePresDone('${p.id}')">${done?'↩️ Batal selesai':'✅ Tandai selesai'}</button><button class='chip' onclick="formPres('${p.id}')">✏️ Edit</button><button class='chip' onclick="hapusPres('${p.id}')">🗑️ Hapus</button></div>`}
+  return h+`</div>`;
+}
+async function uploadPresFile(id,input){const file=input.files[0];if(!file)return;
+  if(file.size>MAX_MB*1024*1024){toast("File maksimal "+MAX_MB+" MB");input.value="";return}
+  toast("Mengunggah materi...");const path="pres_"+Date.now()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+  const up=await sb.storage.from("materi").upload(path,file,{upsert:true});if(up.error){toast("Gagal unggah: "+up.error.message,6000);return}
+  const url=sb.storage.from("materi").getPublicUrl(path).data.publicUrl;
+  const {error}=await sb.from("presentasi").update({materi_url:url,materi_nama:file.name}).eq("id",id);if(error){toast("Gagal simpan berkas");return}
+  const p=STATE.pres.find(x=>x.id===id);if(p){p.materi_url=url;p.materi_nama=file.name}toast("Materi terunggah ✅");renderPresentasi()}
+async function hapusPresFile(id){if(!await confirmBox("Hapus materi / slide ini?",{emoji:"📎",title:"Hapus Materi",yes:"Hapus",no:"Batal"}))return;
+  const {error}=await sb.from("presentasi").update({materi_url:null,materi_nama:null}).eq("id",id);if(error){toast("Gagal menghapus");return}
+  const p=STATE.pres.find(x=>x.id===id);if(p){p.materi_url=null;p.materi_nama=null}toast("Materi dihapus");renderPresentasi()}
+/* ================== JADWAL SHALAT & ARAH KIBLAT ================== */
+function _shJulian(y,m,d){if(m<=2){y-=1;m+=12}var A=Math.floor(y/100);var B=2-A+Math.floor(A/4);return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5}
+function prayTimes(date,lat,lng,tz){
+  var y=date.getFullYear(),m=date.getMonth()+1,d=date.getDate();
+  var jDate=_shJulian(y,m,d)-lng/(15*24);var DR=Math.PI/180;
+  function sin(x){return Math.sin(x*DR)}function cos(x){return Math.cos(x*DR)}function tan(x){return Math.tan(x*DR)}
+  function asin(x){return Math.asin(x)/DR}function acos(x){return Math.acos(x)/DR}function atan2(a,b){return Math.atan2(a,b)/DR}function acot(x){return Math.atan(1/x)/DR}
+  function fixa(a){a=a-360*Math.floor(a/360);return a<0?a+360:a}function fixh(a){a=a-24*Math.floor(a/24);return a<0?a+24:a}
+  function sunPos(jd){var D=jd-2451545.0;var g=fixa(357.529+0.98560028*D);var q=fixa(280.459+0.98564736*D);var L=fixa(q+1.915*sin(g)+0.020*sin(2*g));var e=23.439-0.00000036*D;var decl=asin(sin(e)*sin(L));var RA=fixh(atan2(cos(e)*sin(L),cos(L))/15);return[decl,q/15-RA]}
+  function midDay(t){return fixh(12-sunPos(jDate+t)[1])}
+  function angleTime(ang,t,ccw){var decl=sunPos(jDate+t)[0];var noon=midDay(t);var term=(-sin(ang)-sin(decl)*sin(lat))/(cos(decl)*cos(lat));if(term>1)term=1;if(term<-1)term=-1;var t2=acos(term)/15;return noon+(ccw?-t2:t2)}
+  function asrTime(f,t){var decl=sunPos(jDate+t)[0];return angleTime(-acot(f+tan(Math.abs(lat-decl))),t,false)}
+  var T={imsak:5,fajr:5,sunrise:6,dhuhr:12,asr:13,sunset:18,maghrib:18,isha:18};
+  for(var i=0;i<4;i++){var p={};for(var k in T)p[k]=T[k]/24;
+    T.fajr=angleTime(20,p.fajr,true);T.sunrise=angleTime(0.833,p.sunrise,true);T.dhuhr=midDay(p.dhuhr);T.asr=asrTime(1,p.asr);T.sunset=angleTime(0.833,p.sunset,false);T.maghrib=angleTime(0.833,p.maghrib,false);T.isha=angleTime(18,p.isha,false)}
+  T.imsak=T.fajr-10/60;var out={};for(var k2 in T)out[k2]=fixh(T[k2]+tz-lng/15);return out;
+}
+function qiblaBearing(lat,lng){var DR=Math.PI/180,kLat=21.4225,kLng=39.8262;var dL=(kLng-lng)*DR;var yy=Math.sin(dL);var xx=Math.cos(lat*DR)*Math.tan(kLat*DR)-Math.sin(lat*DR)*Math.cos(dL);return (Math.atan2(yy,xx)/DR+360)%360}
+var SHALAT={lat:null,lng:null,times:null,qibla:null,heading:null};
+async function loadShalat(){if(SHALAT.lat!=null)return;if(!navigator.geolocation)return;await new Promise(function(res){navigator.geolocation.getCurrentPosition(function(p){SHALAT.lat=p.coords.latitude;SHALAT.lng=p.coords.longitude;res()},function(){res()},{timeout:9000,enableHighAccuracy:true})})}
+async function reloadShalat(){toast('Mengambil lokasi...');await loadShalat();renderShalat()}
+function computeShalat(){if(SHALAT.lat==null)return;var tz=-new Date().getTimezoneOffset()/60;SHALAT.times=prayTimes(new Date(),SHALAT.lat,SHALAT.lng,tz);SHALAT.qibla=qiblaBearing(SHALAT.lat,SHALAT.lng)}
+function shFmt(h){h=(h+24)%24;var hh=Math.floor(h),mm=Math.round((h-hh)*60);if(mm===60){mm=0;hh=(hh+1)%24}return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')}
+function shNext(){if(!SHALAT.times)return null;var now=new Date();var nh=now.getHours()+now.getMinutes()/60;var o=[['fajr','Subuh'],['dhuhr','Dzuhur'],['asr','Ashar'],['maghrib','Maghrib'],['isha','Isya']];for(var i=0;i<o.length;i++){if(SHALAT.times[o[i][0]]>nh)return{key:o[i][0],name:o[i][1],time:SHALAT.times[o[i][0]]}}return{key:'fajr',name:'Subuh',time:SHALAT.times.fajr+24}}
+function renderShalat(){var box=$('shalatBody');if(!box)return;
+  if(SHALAT.lat==null){box.innerHTML='<div class="card"><div class="empty"><span class="em">📍</span>Butuh izin lokasi untuk menghitung jadwal shalat &amp; arah kiblat.<br><button class="btn" style="margin-top:12px" onclick="reloadShalat()">📍 Aktifkan Lokasi</button></div></div>';return}
+  computeShalat();var t=SHALAT.times,np=shNext();
+  var now=new Date();var nh=now.getHours()+now.getMinutes()/60;var diff=np.time-nh;if(diff<0)diff+=24;var dh=Math.floor(diff),dm=Math.round((diff-dh)*60);if(dm===60){dm=0;dh++}
+  var rows=[['fajr','🌙','Subuh'],['sunrise','🌄','Terbit'],['dhuhr','🌞','Dzuhur'],['asr','🌤️','Ashar'],['maghrib','🌇','Maghrib'],['isha','🌌','Isya']];
+  var h='';
+  h+=`<div class="card" style="background:linear-gradient(135deg,#0b7d5c,#12b886);color:#fff;border:none"><div style="opacity:.85;font-size:13px">Menuju waktu</div><div style="font-size:25px;font-weight:800;margin-top:2px">${np.name} · ${shFmt(np.time)}</div><div style="margin-top:4px;font-size:13px">⏳ ${dh} jam ${dm} menit lagi</div></div>`;
+  h+=`<div class="card"><div style="font-weight:700">🕌 Jadwal Hari Ini</div><div class="mini" style="margin:4px 0 10px">${now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div>`;
+  rows.forEach(function(r){var act=np&&np.key===r[0];h+=`<div style="display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid rgba(0,0,0,.06);${act?'font-weight:800;color:#0b7d5c':''}"><span>${r[1]} ${r[2]}</span><span>${shFmt(t[r[0]])}</span></div>`});
+  h+=`</div>`;
+  h+=`<div class="card"><div style="font-weight:700;margin-bottom:4px">🧭 Arah Kiblat</div><div class="mini" style="margin-bottom:14px">Kiblat berada <b>${Math.round(SHALAT.qibla)}°</b> dari arah Utara.</div><div style="display:flex;flex-direction:column;align-items:center;gap:14px"><div id="compass" style="position:relative;width:210px;height:210px;border-radius:50%;border:3px solid #dfe3ea;background:radial-gradient(circle at 50% 45%,#ffffff,#eef2f7)"><div style="position:absolute;top:7px;left:50%;transform:translateX(-50%);font-weight:800;color:#e03131;font-size:13px">U</div><div style="position:absolute;bottom:7px;left:50%;transform:translateX(-50%);font-weight:700;color:#9aa;font-size:13px">S</div><div style="position:absolute;left:9px;top:50%;transform:translateY(-50%);font-weight:700;color:#9aa;font-size:13px">B</div><div style="position:absolute;right:9px;top:50%;transform:translateY(-50%);font-weight:700;color:#9aa;font-size:13px">T</div><div id="qiblaNeedle" style="position:absolute;left:50%;top:50%;width:0;height:0;transform-origin:0 0;transition:transform .25s ease"><div style="position:absolute;left:-2.5px;top:-90px;width:5px;height:90px;background:linear-gradient(#12b886,#0b7d5c);border-radius:3px"></div><div style="position:absolute;left:-13px;top:-114px;font-size:22px">🕋</div></div><div style="position:absolute;left:50%;top:50%;width:12px;height:12px;background:#0b7d5c;border-radius:50%;transform:translate(-50%,-50%)"></div></div><button class="btn ghost" style="max-width:220px" onclick="enableCompass()">🧭 Aktifkan Kompas HP</button><div class="mini" id="compassHint" style="text-align:center">Aktifkan kompas, lalu putar HP sampai jarum 🕋 mengarah ke atas — itulah arah kiblat.</div></div></div>`;
+  box.innerHTML=h;updateQibla()
+}
+function updateQibla(){var n=$('qiblaNeedle');if(!n||SHALAT.qibla==null)return;n.style.transform='rotate('+(SHALAT.qibla-(SHALAT.heading||0))+'deg)'}
+function enableCompass(){function handler(e){var hd=null;if(e.webkitCompassHeading!=null)hd=e.webkitCompassHeading;else if(e.alpha!=null)hd=360-e.alpha;if(hd!=null){SHALAT.heading=hd;updateQibla();var c=$('compassHint');if(c)c.textContent='Kompas aktif ✅ · putar HP, jarum tetap menunjuk kiblat.'}}
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){DeviceOrientationEvent.requestPermission().then(function(s){if(s==='granted'){window.addEventListener('deviceorientation',handler,true);toast('Kompas aktif ✅')}else toast('Izin kompas ditolak')}).catch(function(){toast('Kompas tidak didukung')})}
+  else if(window.DeviceOrientationEvent){window.addEventListener('deviceorientationabsolute',handler,true);window.addEventListener('deviceorientation',handler,true);toast('Kompas aktif ✅')}
+  else toast('Perangkat tidak memiliki kompas')}
+function renderPresentasi(){const box=$('presBody');if(!box)return;const adm=can('presentasi');
+  const all=STATE.pres.slice();
+  const upcoming=all.filter(p=>p.status!=='selesai').sort((a,b)=>String(a.tanggal||'').localeCompare(String(b.tanggal||'')));
+  const next=upcoming.find(p=>{const n=presDaysLeft(p.tanggal);return n===null||n>=0})||upcoming[0];
+  let h='';
+  if(next){const n=presDaysLeft(next.tanggal);const today=n===0;
+    h+=`<div class='card' style='background:linear-gradient(135deg,${today?'#e11d48,#f59e0b':'#0b5cad,#2f86e0'});color:#fff;border:none'><div style='font-size:11.5px;opacity:.9;font-weight:800;letter-spacing:.4px'>🎤 PRESENTASI BERIKUTNYA${today?' · HARI INI 🔥':''}</div><div style='font-size:18px;font-weight:800;margin-top:4px'>${esc(next.judul||next.kelompok||'-')}</div><div style='font-size:12.5px;opacity:.92;margin-top:2px'>${esc(next.matkul||'')} · ${esc(next.kelompok||'')}</div><div style='font-size:12px;opacity:.9;margin-top:6px'>👥 ${esc(next.anggota||'-')}</div><div style='display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px'><div style='font-weight:800'>🗓️ ${esc(presFmt(next.tanggal))} · ${esc(presCountdown(next.tanggal))}</div>${adm?`<button class='btn sm' style='width:auto;background:rgba(255,255,255,.22);border:none' onclick="mulaiQnaFromPres('${next.id}')">💬 Mulai QnA</button>`:''}</div></div>`;
+  }else{h+=`<div class='card'><div class='empty'><span class='em'>🎤</span>Belum ada jadwal presentasi.</div></div>`}
+  if(adm){h+=(presEditing!==null)?presFormHtml():`<button class='btn' style='margin:2px 0 10px' onclick='formPres()'>➕ Tambah Jadwal Presentasi</button>`}
+  const matkuls=['(Semua)',...Array.from(new Set(all.map(p=>p.matkul).filter(Boolean)))];window.__presMk=matkuls;
+  h+=`<div class='tabs' style='flex-wrap:wrap'>`+matkuls.map((m,i)=>`<button class='${presMatkulF===m?'on':''}' onclick='setPresF(${i})'>${esc(m)}</button>`).join('')+`</div>`;
+  let list=all.slice();if(presMatkulF!=='(Semua)')list=list.filter(p=>p.matkul===presMatkulF);
+  list.sort((a,b)=>{const sa=a.status==='selesai'?1:0,sb2=b.status==='selesai'?1:0;if(sa!==sb2)return sa-sb2;return String(a.tanggal||'').localeCompare(String(b.tanggal||''))});
+  h+=`<div class='divlabel'>Semua Jadwal (${list.length})</div>`;
+  if(!list.length)h+=`<div class='card'><div class='empty'>Belum ada jadwal untuk filter ini.</div></div>`;
+  list.forEach(p=>{h+=presCard(p,adm)});
+  box.innerHTML=h;
+}
+
 async function apiCreateSesi(o){await sb.from('sesi').update({aktif:false}).eq('aktif',true);
   const {data,error}=await sb.from('sesi').insert({matkul:o.matkul,judul:o.judul,tanggal:o.tgl,buka:o.buka,tutup:o.tutup,lat:o.lat,lon:o.lon,radius:o.radius,dibuat_oleh:ME.n,aktif:true}).select().single();
   if(error){toast('Gagal buat sesi');console.error(error);return false}o.id=data.id;STATE.s=o;STATE.a=[];return true}
@@ -563,10 +692,11 @@ function subscribeRealtime(){if(window.__rt)return;window.__rt=true;
   sb.channel('rt-hub')
     .on('postgres_changes',{event:'*',schema:'public',table:'absensi'},refreshCurrent)
     .on('postgres_changes',{event:'*',schema:'public',table:'sesi'},refreshCurrent)
-    .on('postgres_changes',{event:'*',schema:'public',table:'izin'},refreshCurrent)
+    .on('postgres_changes',{event:'*',schema:'public',table:'izin'},onIzinChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'kas'},refreshCurrent)
     .on('postgres_changes',{event:'*',schema:'public',table:'transaksi'},refreshCurrent)
     .on('postgres_changes',{event:'*',schema:'public',table:'tugas'},refreshCurrent)
+    .on('postgres_changes',{event:'*',schema:'public',table:'presentasi'},onPresChange)
     .subscribe();
   sb.channel('rt-qna')
     .on('postgres_changes',{event:'*',schema:'public',table:'qna_pertanyaan'},onQnaChange)
@@ -632,6 +762,8 @@ const MENUS=[
   ['kas','💰','Kas Kelas'],
   ['info','🗓️','Jadwal & Info'],
   ['qna','💬','QnA'],
+  ['presentasi','🎤','Jadwal Presentasi'],
+  ['shalat','🕌','Jadwal Shalat'],
   ['saran','📨','Kotak Saran']
 ];
 let curMenu='login';
@@ -647,7 +779,7 @@ async function go(id){curMenu=id;
   const meta=MENUS.find(x=>x[0]===id);if(meta){$('tbTitle').textContent=meta[2];$('tbSub').textContent='Hub Deenamic'}
   window.scrollTo(0,0);if(window.innerWidth<900)toggleSidebar(false);
   if(['absensi','kas','tugas'].includes(id))await loadAll();
-  if(id==='qna')await loadQna();if(id==='saran')await loadSaran();if(id==='info')await loadInfo();
+  if(id==='qna')await loadQna();if(id==='saran')await loadSaran();if(id==='info')await loadInfo();if(id==='presentasi')await loadPresentasi();if(id==='shalat')await loadShalat();
   renderMenu(id);
 }
 function renderMenu(id){
@@ -657,6 +789,8 @@ function renderMenu(id){
   else if(id==='qna')renderQna();
   else if(id==='saran')renderSaran();
   else if(id==='info')renderInfo();
+  else if(id==='presentasi')renderPresentasi();
+  else if(id==='shalat')renderShalat();
 }
 </script>
 <script>
@@ -721,7 +855,7 @@ function paneIzinAdmin(){const list=STATE.i.slice().sort((a,b)=>(b.ts||0)-(a.ts|
   let h='<div class="callout"><span class="em">✍️</span><div>Pengajuan izin/sakit dari anggota. <b>'+pend.length+'</b> menunggu diproses.</div></div>';
   h+='<input id="izinaSearch" placeholder="🔍 Cari nama..." oninput="filterList(\'izina\')" style="margin-bottom:8px"><div class="card" id="izinaList">';
   if(!list.length)h+='<div class="empty">Belum ada pengajuan izin.</div>';
-  else list.forEach(x=>{const stt=x.status||'pending';const bcls=stt==='acc'?'b-Hadir':stt==='tolak'?'b-Belum':'b-Izin';const blab=stt==='acc'?'✅ Diterima':stt==='tolak'?'❌ Ditolak':'⏳ Menunggu';
+  else list.forEach(x=>{const stt=x.status||'pending';const bcls=stt==='acc'?'b-Hadir':stt==='tolak'?'b-Belum':'b-Izin';const blab=stt==='acc'?'✅ Diberi Izin':stt==='tolak'?'❌ Ditolak':'⏳ Menunggu';
     h+='<div class="kolrow" data-name="'+esc((x.nama||'').toLowerCase())+'"><div class="top"><div class="av">'+initials(x.nama||'?')+'</div><div class="nm"><b>'+esc(x.nama||'?')+'</b><span>'+badge(x.jenis)+' · '+esc(x.matkul||'')+' · '+(x.tgl||'')+'</span></div><span class="badge '+bcls+'">'+blab+'</span></div>';
     h+='<div class="mini" style="margin-top:6px;padding-left:2px">📝 '+esc(x.alasan||'-')+'</div>';
     if(x.id)h+='<div class="chips" style="margin-top:8px"><button class="chip'+(stt==='acc'?' on':'')+'" onclick="accIzin(\''+x.id+'\')">✅ Terima</button><button class="chip'+(stt==='tolak'?' on':'')+'" onclick="tolakIzin(\''+x.id+'\')">❌ Tolak</button></div>';
@@ -732,14 +866,22 @@ function paneIzinAdmin(){const list=STATE.i.slice().sort((a,b)=>(b.ts||0)-(a.ts|
 async function setIzinStatus(id,st){const {error}=await sb.from('izin').update({status:st,diproses_oleh:ME.n}).eq('id',id);if(error){toast('Gagal memperbarui izin');console.error(error);return}
   const x=STATE.i.find(z=>z.id===id);if(x)x.status=st;toast(st==='acc'?'Izin diterima ✅':'Izin ditolak');renderAbsPane()}
 function accIzin(id){setIzinStatus(id,'acc')}
-function tolakIzin(id){setIzinStatus(id,'tolak')}
+async function tolakIzin(id){const ok=await confirmBox('Tolak pengajuan izin ini? Riwayat izin yang ditolak tidak akan disimpan.',{emoji:'❌',title:'Tolak Izin',yes:'Ya, tolak',no:'Batal'});if(!ok)return;
+  const {error}=await sb.from('izin').delete().eq('id',id);if(error){toast('Gagal menolak izin');console.error(error);return}
+  STATE.i=STATE.i.filter(z=>z.id!==id);toast('Izin ditolak & riwayat dihapus 🗑️');renderAbsPane()}
+async function onIzinChange(p){try{const ev=p.eventType,nw=p.new||{},od=p.old||{};
+    if(ME){
+      if(ev==='UPDATE'&&nw.nim===ME.nim&&nw.status==='acc'&&od.status!=='acc')banner('✅','Diberi Izin',(nw.matkul?nw.matkul+' · ':'')+'Pengajuanmu disetujui admin');
+      else if(ev==='DELETE'&&od.nim===ME.nim)banner('🙏','Izin Ditolak','Pengajuanmu ditolak admin & tidak disimpan');
+    }
+  }catch(_){}refreshCurrent()}
 
 /* ---- RIWAYAT ---- */
 function paneRiwayat(){const myA=DB.a.filter(x=>x.nim===ME.nim),myI=DB.i.filter(x=>x.nim===ME.nim);let h='';
   if(DB.s&&myA.length){const m=myA[0];h+='<div class="card"><div class="divlabel" style="margin-top:0">Sesi Aktif</div><div class="row"><div class="nm"><b>'+esc(DB.s.matkul)+'</b><span>'+DB.s.tgl+' · '+m.jam+'</span></div>'+badge(m.status)+'</div></div>'}
   h+='<div class="divlabel">Riwayat Izin / Sakit</div><div class="card">';
   if(!myI.length)h+='<div class="empty">Belum ada pengajuan izin.</div>';
-  else myI.forEach(x=>{const stt=x.status||'pending';const slab=stt==='acc'?'✅ Diterima':stt==='tolak'?'❌ Ditolak':'⏳ Menunggu';h+='<div class="row"><div class="nm"><b>'+esc(x.matkul)+'</b><span>'+x.tgl+' · '+slab+' · '+esc(x.alasan)+'</span></div>'+badge(x.jenis)+'</div>'});
+  else myI.forEach(x=>{const stt=x.status||'pending';const slab=stt==='acc'?'✅ Diberi Izin':stt==='tolak'?'❌ Ditolak':'⏳ Menunggu';h+='<div class="row"><div class="nm"><b>'+esc(x.matkul)+'</b><span>'+x.tgl+' · '+slab+' · '+esc(x.alasan)+'</span></div>'+badge(x.jenis)+'</div>'});
   return h+'</div>';
 }
 
@@ -792,7 +934,7 @@ function exportCSV(){const s=DB.s;if(!s){toast('Belum ada sesi');return}
 async function kirimNotion(){const s=DB.s;if(!s){toast('Belum ada sesi');return}toast('Mengirim ke Notion...');
   const payload={matkul:s.matkul,tanggal:s.tgl,judul:s.judul,absensi:DB.a.map(x=>({nim:x.nim,nama:x.nama,status:x.status,jam:x.jam}))};
   await postSync('/api/absen',payload,'Absensi')}
-function resetData(){confirmBox('Hapus SEMUA data absensi (sesi, absensi, izin) dari server? Tidak bisa dibatalkan.',{emoji:'⚠️',title:'Reset semua data',yes:'Ya, reset'}).then(v=>{if(v)apiReset().then(()=>{toast('Data direset');renderAbsPane()})})}
+function resetData(){confirmBox('Hapus SEMUA data absensi (sesi, absensi, izin) dari server? Tidak bisa dibatalkan.',{emoji:'���️',title:'Reset semua data',yes:'Ya, reset'}).then(v=>{if(v)apiReset().then(()=>{toast('Data direset');renderAbsPane()})})}
 </script>
 <script>
 /* ================== KAS ================== */
@@ -1116,7 +1258,7 @@ function renderSaran(){const box=$('saranBody');if(!box)return;const admin=can('
   if(!list.length)h+=`<div class="card"><div class="empty"><span class="em">📨</span>${admin?'Belum ada masukan masuk.':'Kamu belum mengirim masukan.'}</div></div>`;
   else list.forEach(s=>{const own=s.client_id===cid||(s.nim&&s.nim===ME.nim);
     h+=`<div class="srn"><div class="st"><span class="badge k-${s.kategori}">${s.kategori}</span><div class="nm" style="flex:1"><b>${s.anonim?'🕶️ Anonim':esc(s.nama||'?')}</b><span>${timeago(s.created_at)}</span></div>`;
-    if(admin||own)h+=`<button class="iconbtn" onclick="hapusSaran('${s.id}')">🗑️</button>`;
+    if(admin||own)h+=`<button class="iconbtn" onclick="hapusSaran('${s.id}')">🗑��</button>`;
     h+=`</div><div style="font-size:14px;line-height:1.5">${esc(s.isi)}</div></div>`});
   box.innerHTML=h}
 function setSaranKat(k){saranKat=k;renderSaran()}
@@ -1211,7 +1353,7 @@ function paneRekap(){let ses=STATE.rekapSes.slice();if(rekapMatkul!=='(Semua)')s
   let h=`<div class="card tint"><b>🏆 Rekap Kehadiran Semester</b><div class="hint">${N} sesi tercatat \u00b7 ${rekapMatkul==='(Semua)'?'semua matkul':esc(rekapMatkul)}</div></div>`;
   h+=`<label class="lb">Filter Mata Kuliah</label><select id="rekapMk" onchange="rekapMatkul=this.value;renderAbsPane()"><option${rekapMatkul==='(Semua)'?' selected':''}>(Semua)</option>`;MATKUL.forEach(m=>h+=`<option${rekapMatkul===m?' selected':''}>${esc(m)}</option>`);h+=`</select>`;
   h+=`<div class="stats" style="margin-top:12px"><div class="stat g"><b>${avg}%</b><span>Rata2 Hadir</span></div><div class="stat b"><b>${N}</b><span>Sesi</span></div><div class="stat o"><b>${STUDENTS.length}</b><span>Anggota</span></div></div>`;
-  h+=`<input id="rekapSearch" placeholder="🔍 Cari nama..." oninput="filterList('rekap')" style="margin-bottom:6px"><div class="divlabel">Kehadiran per Anggota</div><div class="card" id="rekapList">`;
+  h+=`<input id="rekapSearch" placeholder="�� Cari nama..." oninput="filterList('rekap')" style="margin-bottom:6px"><div class="divlabel">Kehadiran per Anggota</div><div class="card" id="rekapList">`;
   if(!N)h+=`<div class="empty"><span class="em">📊</span>Belum ada sesi absensi tercatat.</div>`;
   else rows.sort((a,b)=>b.pct-a.pct).forEach(r=>{h+=`<div class="row" data-name="${esc(r.st.n.toLowerCase())}"><div class="av">${initials(r.st.n)}</div><div class="nm"><b>${esc(r.st.n)}</b><span>✅ ${r.hd} \u00b7 ⏰ ${r.tl} \u00b7 ✍️ ${r.iz} \u00b7 🤒 ${r.sk} \u00b7 ❌ ${r.al}</span></div><span class="badge ${r.pct>=75?'b-Hadir':(r.pct>=50?'b-Terlambat':'b-Belum')}">${r.pct}%</span></div>`});
   h+=`</div>`;return h}
