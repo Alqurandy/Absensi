@@ -358,6 +358,7 @@ textarea{resize:vertical;min-height:80px}
           <label class="lb">PIN</label>
           <input id="loginPin" type="password" inputmode="text" placeholder="Masukkan PIN / NIM" autocomplete="off">
           <div class="hint">Anggota: PIN = NIM sendiri. Pengurus: PIN khusus.</div>
+          <label style="display:flex;align-items:center;gap:8px;margin:12px 0 4px;cursor:pointer;font-size:14px;user-select:none"><input type="checkbox" id="loginRemember" checked style="width:18px;height:18px;flex:none;accent-color:#16a34a"><span>Ingat saya</span></label>
           <button class="btn" onclick="doLogin()">Masuk</button>
         </div>
         <div class="callout"><span class="em">🔒</span><div>Data tersimpan aman &amp; tersinkron real-time. Absensi, Kas &amp; Tugas terhubung ke Notion; QnA &amp; Saran privat di server kelas.</div></div>
@@ -624,7 +625,7 @@ function presCard(p,adm){const done=p.status==='selesai';const n=presDaysLeft(p.
   return h+`</div>`;
 }
 async function uploadPresFile(id,input){const file=input.files[0];if(!file)return;
-  if(file.size>MAX_MB*1024*1024){toast("File maksimal "+MAX_MB+" MB");input.value="";return}
+  if(file.size>MAX_MB*1024*1024){input.value="";const mb=(file.size/1048576).toFixed(1);const ext=(file.name.split('.').pop()||'').toLowerCase();let curl='https://www.ilovepdf.com/compress_pdf';if(ext==='ppt'||ext==='pptx')curl='https://www.ilovepdf.com/powerpoint_to_pdf';else if(ext==='doc'||ext==='docx')curl='https://www.ilovepdf.com/word_to_pdf';const ok=await confirmBox('File kamu '+mb+' MB \u2014 melebihi batas '+MAX_MB+' MB. Kecilkan / convert dulu filenya, lalu upload ulang.',{emoji:'📦',title:'File Terlalu Besar',yes:'🔧 Kecilkan File',no:'↩️ Kembali'});if(ok)window.open(curl,'_blank','noopener');return}
   toast("Mengunggah materi...");const path="pres_"+Date.now()+"_"+file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
   const up=await sb.storage.from("materi").upload(path,file,{upsert:true});if(up.error){toast("Gagal unggah: "+up.error.message,6000);return}
   const url=sb.storage.from("materi").getPublicUrl(path).data.publicUrl;
@@ -757,15 +758,24 @@ async function doLogin(){
   if(!nim){toast('Pilih nama dulu');return}
   const cand=STUDENTS.find(s=>s.nim===nim);const expected=(cand&&cand.pin)?cand.pin:nim;
   if(pin!==expected){toast('PIN salah');return}
+  try{if($('loginRemember')&&$('loginRemember').checked){localStorage.setItem('hub:remember',JSON.stringify({nim:cand.nim,exp:Date.now()+10*864e5}))}else{localStorage.removeItem('hub:remember')}}catch(_){}
+  await enterApp(cand,false);
+}
+async function enterApp(cand,silent){
   ME=cand;
   $('meBox').style.display='block';$('logoutBtn').style.display='block';
   $('meName').textContent=firstName(ME);
   $('meRole').innerHTML='<span class="badge '+(ME.role==='pengurus'?'b-pengurus':'b-anggota')+'" style="font-size:9.5px;padding:1px 6px">'+esc(ME.jab||(ME.role==='pengurus'?'Pengurus':'Anggota'))+'</span>';
-  toast('Memuat data...');
+  toast(silent?'Selamat datang kembali...':'Memuat data...');
   await loadAll();await loadQna();await loadSaran();await loadInfo();
   subscribeRealtime();buildMenu();
   {const _p=new URLSearchParams(location.search);go(_p.get('qna')==='1'?'qna':'absensi')}
   banner('🕌','Assalamu’alaikum, '+firstName(ME)+'!','Selamat datang di Hub Deenamic');
+}
+async function tryAutoLogin(){let t;try{t=JSON.parse(localStorage.getItem('hub:remember')||'null')}catch(_){t=null}
+  if(!t||!t.nim||!t.exp||Date.now()>t.exp){if(t){try{localStorage.removeItem('hub:remember')}catch(_){}}return}
+  const cand=STUDENTS.find(s=>s.nim===t.nim);if(!cand){try{localStorage.removeItem('hub:remember')}catch(_){}return}
+  await enterApp(cand,true);
 }
 function logout(){ME=null;$('meBox').style.display='none';$('logoutBtn').style.display='none';
   $('sbMenu').innerHTML='';$('loginPin').value='';$('loginName').value='';curMenu='login';
@@ -1376,7 +1386,7 @@ function paneRekap(){let ses=STATE.rekapSes.slice();if(rekapMatkul!=='(Semua)')s
 
 /* ================== INIT + PWA ================== */
 fillNames();
-window.addEventListener('load',()=>{setTimeout(()=>$('splash').classList.add('hide'),1400)});
+window.addEventListener('load',()=>{setTimeout(()=>$('splash').classList.add('hide'),1400);tryAutoLogin()});
 if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
 </script>
 </body>
