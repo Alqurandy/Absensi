@@ -1214,7 +1214,7 @@ function renderQna(){const box=$('qnaBody');if(!box)return;
   if(!ses){const sb0=$('qnaSub');if(sb0)sb0.textContent='Belum ada sesi aktif · khusus presentator';box.innerHTML=paneQnaStart();return}
   const isPres=isPresenter();const asAud=isPres&&presView==='audience';const pres=isPres&&!asAud;
   const sb0=$('qnaSub');if(sb0)sb0.textContent=isPres?(asAud?'Pratinjau sebagai audiens':'Mode Presentator · kelola pertanyaan'):'Kirim & like pertanyaan real-time';
-  let h=`<div class="card" style="background:linear-gradient(135deg,#0b5cad,#2f86e0);color:#fff;border:none"><div style="font-size:11.5px;opacity:.85;font-weight:700">🎤 ${esc(ses.matkul||'')}</div><div style="font-size:18px;font-weight:800;margin-top:2px">${esc(ses.judul||'QnA')}</div></div>`;
+  let h=`<div class="card" style="background:linear-gradient(135deg,#0b5cad,#2f86e0);color:#fff;border:none"><div style="font-size:11.5px;opacity:.85;font-weight:700">��� ${esc(ses.matkul||'')}</div><div style="font-size:18px;font-weight:800;margin-top:2px">${esc(ses.judul||'QnA')}</div></div>`;
   h+=`<div class="qna-head"><div class="grow"><div class="tabs" style="margin:0"><button class="${qnaSort==='populer'?'on':''}" onclick="setQnaSort('populer')">🔥 Populer</button><button class="${qnaSort==='terbaru'?'on':''}" onclick="setQnaSort('terbaru')">🕒 Terbaru</button></div></div>`;
   if(isPres){h+=`<div class="qgear"><button class="iconbtn" onclick="toggleGear()">⚙️</button><div class="qpanel" id="qGearPanel">`;
     if(pres){h+=`<button class="btn sm" style="width:100%;margin-bottom:8px;background:linear-gradient(135deg,#7c3aed,#e11d48);border:none" onclick="openGacha()">🎲 Gacha Pertanyaan</button>`;
@@ -1388,6 +1388,7 @@ async function hapusSaran(id){const admin=can('saran');const ok=await confirmBox
 const PENG_KAT=[['penting','🔴','Penting'],['umum','📢','Umum'],['ujian','📝','Ujian'],['tugas','📚','Tugas'],['presentasi','🎤','Presentasi'],['kas','💰','Kas']];
 const KAT_LABEL=Object.fromEntries(PENG_KAT.map(k=>[k[0],k[1]+' '+k[2]]));
 let pengEditing=null;
+function pengAuthor(who){if(!who)return '?';const st=STUDENTS.find(s=>s.n===who)||STUDENTS.find(s=>s.nim===who)||STUDENTS.find(s=>s.panggil===who);if(!st)return esc(who);const j=(st.jab||'').toLowerCase();let role='Pengurus';if(j.includes('admin'))role='Admin';else if(j.includes('bukwa'))role='Bukwa';else if(j.includes('sekretaris'))role='Sekretaris';else if(j.includes('bendahara'))role='Bendahara';return esc(role);}
 async function loadPengumuman(){const {data}=await sb.from('pengumuman').select('*').order('created_at',{ascending:false});STATE.pengumuman=data||[]}
 function renderPengumuman(){const box=$('pengBody');if(!box)return;const adm=can('pengumuman');let h='';
   if(adm){const ed=pengEditing?STATE.pengumuman.find(x=>x.id===pengEditing):null;const eKat=(ed&&Array.isArray(ed.kategori))?ed.kategori:[];const eTag=(ed&&Array.isArray(ed.tag_nims))?ed.tag_nims:[];
@@ -1408,7 +1409,7 @@ function renderPengumuman(){const box=$('pengBody');if(!box)return;const adm=can
     if(kat.length)h+=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">`+kat.map(k=>`<span class="badge" style="background:#eef3fb;color:#0b5cad;font-size:10.5px">${esc(KAT_LABEL[k]||k)}</span>`).join('')+`</div>`;
     h+=`<div style="font-size:14px;line-height:1.55;margin-top:6px;white-space:pre-wrap">${esc(p.isi||'')}</div>`;
     if(Array.isArray(p.tag_nims)&&p.tag_nims.length)h+=`<div style="font-size:11.5px;color:#0b5cad;margin-top:6px">🏷️ ${p.tag_nims.map(n=>esc(firstName(byNim(n)))).join(', ')}</div>`;
-    h+=`<div style="font-size:11.5px;color:var(--text2);margin-top:8px">✍️ ${esc(p.dibuat_oleh||'?')} · ${timeago(p.created_at)}</div></div>`;
+    h+=`<div style="font-size:11.5px;color:var(--text2);margin-top:8px">✍️ ${pengAuthor(p.dibuat_oleh)} · ${timeago(p.created_at)}</div></div>`;
     if(adm)h+=`<div style="display:flex;flex-direction:column;gap:6px"><button class="iconbtn" onclick="editPeng('${p.id}')">✏️</button><button class="iconbtn" onclick="hapusPeng('${p.id}')">🗑️</button></div>`;
     h+=`</div></div>`;});
   box.innerHTML=h}
