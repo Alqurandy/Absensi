@@ -170,6 +170,8 @@ textarea{resize:vertical;min-height:80px}
 .jenis{display:flex;gap:9px;margin-bottom:4px}
 .jenis button{flex:1;padding:11px;border:1px solid var(--line2);border-radius:12px;background:var(--cardsolid);font-size:14px;font-weight:650;cursor:pointer}
 .jenis button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.jenis.wrap{flex-wrap:wrap;gap:7px}
+.jenis.wrap button{flex:0 0 auto;padding:8px 13px;font-size:13px;border-radius:20px}
 .empty{text-align:center;color:var(--text2);font-size:13px;padding:26px 10px}
 .empty .em{font-size:34px;display:block;margin-bottom:8px;opacity:.6}
 .big{text-align:center;padding:8px 0 4px}
@@ -1342,8 +1344,8 @@ function renderPengumuman(){const box=$('pengBody');if(!box)return;const adm=can
     h+=`<div class="card solid"><div class="divlabel">${ed?'✏️ Edit Pengumuman':'➕ Buat Pengumuman'}</div>`;
     h+=`<label class="lb">Judul</label><input id="pgJudul" placeholder="mis. Libur UTS minggu depan" value="${ed?esc(ed.judul||''):''}">`;
     h+=`<label class="lb">Isi</label><textarea id="pgIsi" placeholder="Tulis isi pengumuman...">${ed?esc(ed.isi||''):''}</textarea>`;
-    h+=`<label class="lb">Kategori (boleh lebih dari satu)</label><div class="jenis" id="pgKat">`+PENG_KAT.map(k=>`<button type="button" class="${eKat.includes(k[0])?'on':''}" data-k="${k[0]}" onclick="this.classList.toggle('on')">${k[1]} ${k[2]}</button>`).join('')+`</div>`;
-    h+=`<label class="lb">Tag orang (opsional — mereka dapat notif)</label><div class="jenis" id="pgTags">`+STUDENTS.map(s=>`<button type="button" class="${eTag.includes(s.nim)?'on':''}" data-nim="${s.nim}" onclick="this.classList.toggle('on')">${esc(firstName(s))}</button>`).join('')+`</div>`;
+    h+=`<label class="lb">Kategori (boleh lebih dari satu)</label><div class="jenis wrap" id="pgKat">`+PENG_KAT.map(k=>`<button type="button" class="${eKat.includes(k[0])?'on':''}" data-k="${k[0]}" onclick="this.classList.toggle('on')">${k[1]} ${k[2]}</button>`).join('')+`</div>`;
+    h+=`<label class="lb">Tag orang (opsional — mereka dapat notif)</label><div class="jenis wrap" id="pgTags">`+STUDENTS.map(s=>`<button type="button" class="${eTag.includes(s.nim)?'on':''}" data-nim="${s.nim}" onclick="this.classList.toggle('on')">${esc(firstName(s))}</button>`).join('')+`</div>`;
     h+=`<button class="btn" onclick="savePeng()">${ed?'Simpan Perubahan':'Terbitkan 📢'}</button>`;
     if(ed)h+=`<button class="btn ghost" onclick="cancelPeng()" style="margin-top:8px">Batal</button>`;
     h+=`</div>`;}
