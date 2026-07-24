@@ -161,6 +161,19 @@ textarea{resize:vertical;min-height:80px}
 .b-Belum{background:var(--graybg);color:var(--gray)}
 .b-pengurus{background:#eae6ff;color:#6d28d9}
 .b-anggota{background:var(--graybg);color:var(--text2)}
+.utangbox{margin-top:10px;border:1.5px solid #f6b8b8;background:linear-gradient(135deg,#fff5f5,#ffe6e6);border-radius:14px;padding:10px 12px;animation:utpulse 1.6s ease-in-out infinite}
+@keyframes utpulse{0%,100%{box-shadow:0 0 0 0 rgba(225,29,72,0);border-color:#f6b8b8}50%{box-shadow:0 0 0 4px rgba(225,29,72,.14);border-color:#ef8f8f}}
+.utangbox .ut-top{display:flex;align-items:center;gap:10px}
+.utangbox .ut-em{font-size:20px;display:inline-block;animation:utshake 1.1s ease-in-out infinite}
+@keyframes utshake{0%,100%{transform:rotate(0)}20%{transform:rotate(-13deg)}60%{transform:rotate(13deg)}}
+.utangbox .ut-info{display:flex;flex-direction:column;line-height:1.25}
+.utangbox .ut-info b{color:#be123c;font-size:12px;font-weight:700;letter-spacing:.02em}
+.utangbox .ut-info span{color:#e11d48;font-size:16px;font-weight:800}
+.utangbox .ut-act{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.utangbox .ut-act input{flex:1;min-width:120px;padding:8px 10px;border:1px solid #eaa9a9;border-radius:10px;font-size:14px;background:#fff}
+.utangbox .ut-act button{padding:8px 13px;border:none;border-radius:10px;background:#e11d48;color:#fff;font-weight:700;cursor:pointer;font-size:13px}
+.utangbox .ut-act .ut-lunas{background:#16a34a}
+.utangbox .ut-act .ut-reset{background:#94a3b8}
 .kolrow{padding:12px 0;border-bottom:1px solid var(--line)}
 .kolrow:last-child{border-bottom:none}
 .kolrow .top{display:flex;align-items:center;gap:11px;margin-bottom:9px}
@@ -170,8 +183,6 @@ textarea{resize:vertical;min-height:80px}
 .jenis{display:flex;gap:9px;margin-bottom:4px}
 .jenis button{flex:1;padding:11px;border:1px solid var(--line2);border-radius:12px;background:var(--cardsolid);font-size:14px;font-weight:650;cursor:pointer}
 .jenis button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.jenis.wrap{flex-wrap:wrap;gap:7px}
-.jenis.wrap button{flex:0 0 auto;padding:8px 13px;font-size:13px;border-radius:20px}
 .empty{text-align:center;color:var(--text2);font-size:13px;padding:26px 10px}
 .empty .em{font-size:34px;display:block;margin-bottom:8px;opacity:.6}
 .big{text-align:center;padding:8px 0 4px}
@@ -510,7 +521,7 @@ const VAPID_PUBLIC="BAfTEGkWJjxiA__Z9Kj4rr7KCo1EnCf8OMy0zSuL3c6gfwGSO-332dwlmV3x
 const NOTIFY_URL="/api/notify";
 
 /* ================== STATE ================== */
-const STATE={s:null,a:[],i:[],kas:[],trx:[],tugas:[],qna:[],qbal:[],qlike:[],saran:[],jadwal:[],dosen:[],rekapSes:[],rekapAbs:[],pres:[],pengumuman:[]};
+const STATE={s:null,a:[],i:[],kas:[],trx:[],tugas:[],qna:[],qbal:[],qlike:[],saran:[],jadwal:[],dosen:[],rekapSes:[],rekapAbs:[],pres:[],pengumuman:[],utang:[]};
 const DB={get s(){return STATE.s},get a(){return STATE.a},get i(){return STATE.i}};
 let ME=null,jenisSel="Izin",dashQ='',kolQ='',absTab='absen';
 
@@ -571,6 +582,7 @@ async function loadAll(){
     const {data:iz}=await sb.from('izin').select('*').order('created_at',{ascending:false});STATE.i=(iz||[]).map(mapIzin);
     const {data:ks}=await sb.from('kas').select('*');STATE.kas=ks||[];
     const {data:tx}=await sb.from('transaksi').select('*').order('tanggal',{ascending:false});STATE.trx=tx||[];
+    const {data:ut}=await sb.from('utang').select('*');STATE.utang=ut||[];
     const {data:tg}=await sb.from('tugas').select('*').order('created_at',{ascending:false});STATE.tugas=tg||[];
   }catch(e){console.error(e);toast('Gagal memuat data')}
 }
@@ -736,6 +748,7 @@ function subscribeRealtime(){if(window.__rt)return;window.__rt=true;
     .on('postgres_changes',{event:'*',schema:'public',table:'izin'},onIzinChange)
     .on('postgres_changes',{event:'*',schema:'public',table:'kas'},refreshCurrent)
     .on('postgres_changes',{event:'*',schema:'public',table:'transaksi'},refreshCurrent)
+    .on('postgres_changes',{event:'*',schema:'public',table:'utang'},refreshCurrent)
     .on('postgres_changes',{event:'*',schema:'public',table:'tugas'},refreshCurrent)
     .on('postgres_changes',{event:'*',schema:'public',table:'presentasi'},onPresChange)
     .subscribe();
@@ -1009,6 +1022,38 @@ let kasTab="setoran",trxJenis="Pemasukan";
 const rupiah=n=>"Rp"+(Number(n)||0).toLocaleString("id-ID");
 function kasRow(nim){return STATE.kas.find(k=>k.nim===nim)||{}}
 function kasCount(r){let c=0;for(let i=1;i<=16;i++)if(r["m"+i])c++;return c}
+/* ==== UTANG SEMESTER 2 (rekap dobel, total Rp280.000) ==== */
+const UTANG={"2577012473":20000,"2577012536":25000,"2577012492":25000,"2577012474":5000,"2577012479":5000,"2577012496":25000,"2577012538":35000,"2577012510":15000,"2577012489":35000,"2577012514":40000,"2577012512":5000,"2577012528":15000,"2577012544":25000,"2477012352":5000};
+function utangTotal(nim){return UTANG[nim]||0}
+function utangPaid(nim){const r=STATE.utang.find(u=>u.nim===nim);return r?Number(r.bayar)||0:0}
+function utangSisa(nim){return Math.max(0,utangTotal(nim)-utangPaid(nim))}
+function utangBoxHtml(nim,admin){
+  const total=utangTotal(nim);if(!total)return "";
+  const sisa=utangSisa(nim);if(sisa<=0)return "";/* hilang jika lunas */
+  const paid=utangPaid(nim);
+  let h=`<div class="utangbox"><div class="ut-top"><span class="ut-em">💸</span><div class="ut-info"><b>Utang Semester 2</b><span>${rupiah(sisa)}${paid>0?` · terbayar ${rupiah(paid)}/${rupiah(total)}`:""}</span></div></div>`;
+  if(admin){h+=`<div class="ut-act"><input type="number" inputmode="numeric" id="ut-in-${nim}" placeholder="Nominal cicilan"><button onclick="cicilUtang('${nim}')">Cicil</button><button class="ut-lunas" onclick="lunasUtang('${nim}')">Lunas</button>${paid>0?`<button class="ut-reset" title="Reset cicilan" onclick="resetUtang('${nim}')">↺</button>`:""}</div>`;}
+  return h+`</div>`;
+}
+async function _saveUtang(nim,newBayar,prev){
+  let row=STATE.utang.find(u=>u.nim===nim);
+  if(!row){row={nim,bayar:newBayar};STATE.utang.push(row)}else row.bayar=newBayar;
+  renderKas();
+  const {error}=await sb.from("utang").upsert({nim,bayar:newBayar,updated_at:new Date().toISOString()},{onConflict:"nim"});
+  if(error){toast("Gagal simpan utang");console.error(error);row.bayar=prev;renderKas();return false}
+  return true;
+}
+async function bayarUtang(nim,amt){
+  amt=Number(amt);if(!amt||amt<=0){toast("Isi nominal cicilan dulu");return}
+  const sisa=utangSisa(nim);if(sisa<=0)return;
+  const bayar=Math.min(amt,sisa);const prev=utangPaid(nim);const nb=prev+bayar;
+  const ok=await _saveUtang(nim,nb,prev);if(!ok)return;
+  if(utangSisa(nim)<=0){toast("Utang "+(byNim(nim).panggil||namaByNim(nim))+" LUNAS 🎉");confetti()}
+  else toast("Cicilan "+rupiah(bayar)+" tercatat · sisa "+rupiah(utangSisa(nim)));
+}
+function cicilUtang(nim){const el=$("ut-in-"+nim);bayarUtang(nim,el?el.value:0)}
+async function lunasUtang(nim){const ok=await confirmBox("Tandai utang "+namaByNim(nim)+" ("+rupiah(utangSisa(nim))+") sebagai LUNAS?",{emoji:"✅",title:"Lunaskan utang?",yes:"Ya, lunas",no:"Batal"});if(!ok)return;bayarUtang(nim,utangSisa(nim))}
+async function resetUtang(nim){const ok=await confirmBox("Reset cicilan "+namaByNim(nim)+" kembali ke "+rupiah(utangTotal(nim))+"?",{emoji:"↺",title:"Reset cicilan?",yes:"Reset",no:"Batal"});if(!ok)return;await _saveUtang(nim,0,utangPaid(nim))}
 function setKasTab(t){kasTab=t;renderKas()}
 function setTrxJenis(j){trxJenis=j;$("tx-Pemasukan").classList.toggle("on",j==="Pemasukan");$("tx-Pengeluaran").classList.toggle("on",j==="Pengeluaran")}
 async function toggleKas(nim,wk){let row=STATE.kas.find(k=>k.nim===nim);if(!row){row={nim};STATE.kas.push(row)}
@@ -1034,14 +1079,14 @@ function renderKas(){const box=$("kasBody");if(!box)return;const admin=can("kas"
       STUDENTS.forEach(st=>{const r=kasRow(st.nim),c=kasCount(r);let streak=0;for(let i=1;i<=16;i++){if(r["m"+i])streak++;else break}
         h+=`<div class="kolrow"><div class="top"><div class="av">${initials(st.n)}</div><div class="nm"><b>${esc(st.n)}</b><span id="kasc-${st.nim}">${rupiah(c*5000)} · ${c}/16</span></div>${c===16?'<span class="badge b-Hadir">✅ Lunas</span>':""}</div><div class="wk">`;
         for(let i=1;i<=16;i++){const lk=i>streak+1;h+=`<button class="${r["m"+i]?"on":""}" ${lk?"disabled":""} style="${lk?"opacity:.32;cursor:not-allowed":""}" title="${lk?"Centang minggu sebelumnya dulu":""}" onclick="toggleKas('${st.nim}',${i})">${i}</button>`}
-        h+=`</div></div>`});
+        h+=`</div>`+utangBoxHtml(st.nim,true)+`</div>`});
       h+=`<button class="btn ok" onclick="kirimKasNotion()">🔄 Kirim Setoran ke Notion</button>`;
     }else{const r=kasRow(ME.nim),c=kasCount(r);
       h+=`<div class="card"><div class="divlabel" style="margin-top:0">Status Kas Saya</div><div class="saldo">${rupiah(c*5000)}</div><div class="prog">${c}/16 minggu · tunggakan ${rupiah((16-c)*5000)}</div><div class="wk">`;
       for(let i=1;i<=16;i++)h+=`<button class="${r["m"+i]?"on":""}" style="cursor:default">${i}</button>`;
-      h+=`</div></div><div class="divlabel">Status Kelas</div><div class="card">`;
+      h+=`</div>`+utangBoxHtml(ME.nim,false)+`</div><div class="divlabel">Status Kelas</div><div class="card">`;
       STUDENTS.forEach(st=>{const rr=kasRow(st.nim),cc=kasCount(rr);
-        h+=`<div class="row"><div class="nm"><b>${esc(st.n)}</b><span>${cc}/16</span></div>${cc===16?'<span class="badge b-Hadir">✅ Lunas</span>':`<span class="badge b-Belum">${Math.round(cc/16*100)}%</span>`}</div>`});
+        h+=`<div class="row"><div class="nm"><b>${esc(st.n)}</b><span>${cc}/16</span></div>${cc===16?'<span class="badge b-Hadir">✅ Lunas</span>':`<span class="badge b-Belum">${Math.round(cc/16*100)}%</span>`}</div>`+utangBoxHtml(st.nim,false)});
       h+=`</div>`}
   }else{let masuk=0,keluar=0;STATE.trx.forEach(t=>{if(t.jenis==="Pemasukan")masuk+=Number(t.jumlah)||0;else keluar+=Number(t.jumlah)||0});
     h+=`<div class="card"><div class="divlabel" style="margin-top:0">Saldo Kas</div><div class="saldo" style="color:var(--green)">${rupiah(masuk-keluar)}</div><div class="prog">Masuk ${rupiah(masuk)} · Keluar ${rupiah(keluar)}</div></div>`;
@@ -1344,8 +1389,8 @@ function renderPengumuman(){const box=$('pengBody');if(!box)return;const adm=can
     h+=`<div class="card solid"><div class="divlabel">${ed?'✏️ Edit Pengumuman':'➕ Buat Pengumuman'}</div>`;
     h+=`<label class="lb">Judul</label><input id="pgJudul" placeholder="mis. Libur UTS minggu depan" value="${ed?esc(ed.judul||''):''}">`;
     h+=`<label class="lb">Isi</label><textarea id="pgIsi" placeholder="Tulis isi pengumuman...">${ed?esc(ed.isi||''):''}</textarea>`;
-    h+=`<label class="lb">Kategori (boleh lebih dari satu)</label><div class="jenis wrap" id="pgKat">`+PENG_KAT.map(k=>`<button type="button" class="${eKat.includes(k[0])?'on':''}" data-k="${k[0]}" onclick="this.classList.toggle('on')">${k[1]} ${k[2]}</button>`).join('')+`</div>`;
-    h+=`<label class="lb">Tag orang (opsional — mereka dapat notif)</label><div class="jenis wrap" id="pgTags">`+STUDENTS.map(s=>`<button type="button" class="${eTag.includes(s.nim)?'on':''}" data-nim="${s.nim}" onclick="this.classList.toggle('on')">${esc(firstName(s))}</button>`).join('')+`</div>`;
+    h+=`<label class="lb">Kategori (boleh lebih dari satu)</label><div class="jenis" id="pgKat">`+PENG_KAT.map(k=>`<button type="button" class="${eKat.includes(k[0])?'on':''}" data-k="${k[0]}" onclick="this.classList.toggle('on')">${k[1]} ${k[2]}</button>`).join('')+`</div>`;
+    h+=`<label class="lb">Tag orang (opsional — mereka dapat notif)</label><div class="jenis" id="pgTags">`+STUDENTS.map(s=>`<button type="button" class="${eTag.includes(s.nim)?'on':''}" data-nim="${s.nim}" onclick="this.classList.toggle('on')">${esc(firstName(s))}</button>`).join('')+`</div>`;
     h+=`<button class="btn" onclick="savePeng()">${ed?'Simpan Perubahan':'Terbitkan 📢'}</button>`;
     if(ed)h+=`<button class="btn ghost" onclick="cancelPeng()" style="margin-top:8px">Batal</button>`;
     h+=`</div>`;}
