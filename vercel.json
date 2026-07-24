@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron-presentasi?slot=evening", "schedule": "0 12 * * *" },
+    { "path": "/api/cron-presentasi?slot=morning", "schedule": "0 1 * * *" }
+  ]
+}

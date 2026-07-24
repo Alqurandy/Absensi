@@ -79,6 +79,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .sb-item{display:flex;align-items:center;gap:12px;padding:13px 13px;border-radius:12px;cursor:pointer;
   font-weight:650;font-size:14.5px;color:rgba(255,255,255,.85);margin-bottom:3px;transition:.15s}
 .sb-item .ic{font-size:19px;width:24px;text-align:center}
+.sb-item .lbl{flex:1;min-width:0}
+.sb-badge{min-width:19px;height:19px;padding:0 6px;border-radius:10px;background:#e11d48;color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center}
+#notifBar{position:fixed;left:0;right:0;bottom:0;z-index:44;display:none;align-items:center;gap:10px;justify-content:center;padding:10px 14px;background:#e11d48;color:#fff;font-size:13px;font-weight:600;box-shadow:0 -4px 12px rgba(0,0,0,.18);text-align:center}
+#notifBar .btn-sm{background:#fff;color:#e11d48;border:none;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer;font-size:12.5px;white-space:nowrap}
 .sb-item:hover{background:rgba(255,255,255,.1)}
 .sb-item.on{background:#fff;color:var(--blue);box-shadow:var(--shadow-s)}
 .sb-foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.15);font-size:11px;color:rgba(255,255,255,.6)}
@@ -415,9 +419,16 @@ textarea{resize:vertical;min-height:80px}
         <div id="saranBody"></div>
       </div>
 
+      <div class="screen" id="s-pengumuman">
+        <div class="hero"><span class="em">📢</span><div><h2 class="title">Papan Pengumuman</h2><div class="sub">Info &amp; pengumuman resmi dari pengurus kelas</div></div></div>
+        <div id="pengBody"></div>
+      </div>
+
     </div>
   </div>
 </div>
+
+<div id="notifBar"></div>
 
 <!-- projector overlay -->
 <div class="proj" id="proj">
@@ -481,7 +492,8 @@ const PERM={
   kas:["2577012489","2577012474"],                                                       /* Fariha */
   tugas:["2577012474","2577012528","2577012473","2577012544"],            /* Rio, Deva, Nisa, Sindi */
   saran:["2577012474","2577012473","2577012528"],                          /* Rio, Nisa, Deva */
-  presentasi:["2577012474","2577012528","2577012473","2577012544"]         /* Rio, Deva, Nisa, Sindi */
+  presentasi:["2577012474","2577012528","2577012473","2577012544"],
+  pengumuman:["2577012474","2577012528","2577012473"]         /* Rendi, Deva, Nisa' */
 };
 const can=f=>!!(ME&&PERM[f]&&PERM[f].includes(ME.nim));
 const SUPER=["2577012473","2577012474"]; /* Nisa', Rendi */
@@ -492,9 +504,11 @@ const QNA_PRESENTER_PW="Deenamicbaik";
 const SUPABASE_URL="https://fktjvxjerdjcwyzahgdq.supabase.co";
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrdGp2eGplcmRqY3d5emFoZ2RxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQwOTQ0NjMsImV4cCI6MjA5OTY3MDQ2M30.G3LuHXgj4hbF7wJQ9lfV8ksPYvU4g7nHS6cl1mgYxW8";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const VAPID_PUBLIC="BAfTEGkWJjxiA__Z9Kj4rr7KCo1EnCf8OMy0zSuL3c6gfwGSO-332dwlmV3xG3fDyHT-vuL40Z-IwySnOa-lGd8";
+const NOTIFY_URL="/api/notify";
 
 /* ================== STATE ================== */
-const STATE={s:null,a:[],i:[],kas:[],trx:[],tugas:[],qna:[],qbal:[],qlike:[],saran:[],jadwal:[],dosen:[],rekapSes:[],rekapAbs:[],pres:[]};
+const STATE={s:null,a:[],i:[],kas:[],trx:[],tugas:[],qna:[],qbal:[],qlike:[],saran:[],jadwal:[],dosen:[],rekapSes:[],rekapAbs:[],pres:[],pengumuman:[]};
 const DB={get s(){return STATE.s},get a(){return STATE.a},get i(){return STATE.i}};
 let ME=null,jenisSel="Izin",dashQ='',kolQ='',absTab='absen';
 
@@ -570,7 +584,11 @@ async function loadQnaSes(){const {data}=await sb.from('qna_sesi').select('*').e
 /* ================== JADWAL PRESENTASI ================== */
 let presMatkulF='(Semua)';let presEditing=null;
 async function loadPresentasi(){const {data}=await sb.from('presentasi').select('*').order('tanggal',{ascending:true});STATE.pres=data||[]}
-async function onPresChange(){await loadPresentasi();if(curMenu==='presentasi')renderPresentasi()}
+async function onPresChange(payload){await loadPresentasi();if(curMenu==='presentasi')renderPresentasi();updateBadges();
+  const p=payload&&payload.new;if(!p||!ME||(payload&&payload.eventType!=='INSERT'))return;
+  const mine=Array.isArray(p.anggota_arr)&&p.anggota_arr.includes(ME.n);
+  if(mine){notifyStrong('🎤','Giliranmu presentasi!',(p.matkul||'')+' — siapkan materi ya');showOsNotif('🎤 Giliranmu presentasi',(p.matkul||'')+' — siapkan materi ya')}
+  else{notifyStrong('📚','Jadwal presentasi baru',(p.matkul||'')+' • '+(p.judul||''));showOsNotif('📚 Jadwal presentasi baru',(p.matkul||'')+' • '+(p.judul||''))}}
 function presDaysLeft(tgl){if(!tgl)return null;const d=new Date(tgl+'T00:00:00');const now=new Date();now.setHours(0,0,0,0);return Math.round((d-now)/86400000)}
 function presCountdown(tgl){const n=presDaysLeft(tgl);if(n===null)return '';if(n<0)return 'Sudah lewat';if(n===0)return 'HARI INI';if(n===1)return 'Besok';return n+' hari lagi'}
 function presFmt(tgl){if(!tgl)return '-';try{return new Date(tgl+'T00:00:00').toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}catch(_){return tgl}}
@@ -602,10 +620,13 @@ async function savePres(){const matkul=$('pfMatkul').value;const kelRaw=$('pfKel
   if(!matkul){toast('Pilih mata kuliah');return}
   if(!kelRaw||isNaN(Number(kelRaw))){toast('Nomor kelompok wajib berupa angka');return}
   if(!tanggal){toast('Isi tanggal presentasi');return}
-  const row={matkul,nomor_kelompok:Number(kelRaw),judul,anggota_arr,tanggal,deadline,catatan,dibuat_oleh:ME.n};let error;
+  const row={matkul,nomor_kelompok:Number(kelRaw),judul,anggota_arr,tanggal,deadline,catatan,dibuat_oleh:ME.n};const isNew=!(presEditing&&presEditing!=='new');let error;
   if(presEditing&&presEditing!=='new'){({error}=await sb.from('presentasi').update(row).eq('id',presEditing))}
   else{({error}=await sb.from('presentasi').insert({...row,status:'terjadwal'}))}
   if(error){toast('Gagal menyimpan');console.error(error);return}
+  if(isNew){const anggNims=anggota_arr.map(n=>{const s=STUDENTS.find(x=>x.n===n);return s?s.nim:null}).filter(Boolean);const bd=matkul+(judul?(' — '+judul):'');
+    if(anggNims.length)pushNotify({title:'🎤 Kamu dapat jadwal presentasi',body:bd,url:'/?menu=presentasi',onlyNims:anggNims});
+    pushNotify({title:'📚 Jadwal presentasi baru',body:bd,url:'/?menu=presentasi',excludeNims:anggNims.concat([ME.nim])});}
   presEditing=null;await loadPresentasi();renderPresentasi();toast('Kelompok tersimpan ✅')}
 async function togglePresDone(id){const p=STATE.pres.find(x=>x.id===id);if(!p)return;const ns=p.status==='selesai'?'terjadwal':'selesai';const {error}=await sb.from('presentasi').update({status:ns}).eq('id',id);if(error){toast('Gagal memperbarui');return}await loadPresentasi();renderPresentasi()}
 async function hapusPres(id){const ok=await confirmBox('Hapus jadwal presentasi ini?',{emoji:'🗑️',title:'Hapus Jadwal',yes:'Ya, hapus',no:'Batal'});if(!ok)return;const {error}=await sb.from('presentasi').delete().eq('id',id);if(error){toast('Gagal menghapus');return}await loadPresentasi();renderPresentasi();toast('Jadwal dihapus')}
@@ -729,7 +750,19 @@ function subscribeRealtime(){if(window.__rt)return;window.__rt=true;
     .on('postgres_changes',{event:'*',schema:'public',table:'jadwal'},async()=>{await loadInfo();if(curMenu==='info')renderInfo()})
     .on('postgres_changes',{event:'*',schema:'public',table:'dosen'},async()=>{await loadInfo();if(curMenu==='info')renderInfo()})
     .subscribe();
+  sb.channel('rt-peng')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'pengumuman'},onPengInsert)
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'pengumuman'},onPengRefresh)
+    .on('postgres_changes',{event:'DELETE',schema:'public',table:'pengumuman'},onPengRefresh)
+    .subscribe();
 }
+async function onPengInsert(payload){const p=payload&&payload.new;await loadPengumuman();if(curMenu==='pengumuman')renderPengumuman();updateBadges();
+  if(!p||!ME||p.dibuat_oleh===ME.n)return;
+  const tagged=Array.isArray(p.tag_nims)&&p.tag_nims.includes(ME.nim);
+  const pent=Array.isArray(p.kategori)?p.kategori.includes('penting'):!!p.penting;
+  if(tagged){notifyStrong('🏷️','Kamu di-tag!',p.judul||'Ada pengumuman untukmu');showOsNotif('🏷️ Kamu di-tag di pengumuman',p.judul||'')}
+  else{notifyStrong(pent?'📢':'🔔',pent?'Pengumuman Penting!':'Pengumuman Baru',p.judul||'');showOsNotif(pent?'📢 Pengumuman Penting':'🔔 Pengumuman Baru',p.judul||'')}}
+async function onPengRefresh(){await loadPengumuman();if(curMenu==='pengumuman')renderPengumuman();updateBadges()}
 let __rcT=null;function refreshCurrent(){clearTimeout(__rcT);__rcT=setTimeout(async()=>{await loadAll();if(curMenu==='absensi')renderAbsPane();else if(curMenu==='kas')renderKas();else if(curMenu==='tugas')renderTugas()},250)}
 async function onQnaChange(payload){const nq=payload&&payload.new;const oq=(payload&&payload.old)||{};
   if(payload&&payload.table==='qna_pertanyaan'&&payload.eventType==='UPDATE'&&nq){
@@ -767,9 +800,10 @@ async function enterApp(cand,silent){
   $('meName').textContent=firstName(ME);
   $('meRole').innerHTML='<span class="badge '+(ME.role==='pengurus'?'b-pengurus':'b-anggota')+'" style="font-size:9.5px;padding:1px 6px">'+esc(ME.jab||(ME.role==='pengurus'?'Pengurus':'Anggota'))+'</span>';
   toast(silent?'Selamat datang kembali...':'Memuat data...');
-  await loadAll();await loadQna();await loadSaran();await loadInfo();
+  await loadAll();await loadQna();await loadSaran();await loadInfo();await loadPengumuman();await loadPresentasi();
   subscribeRealtime();buildMenu();
-  {const _p=new URLSearchParams(location.search);go(_p.get('qna')==='1'?'qna':'absensi')}
+  {const _p=new URLSearchParams(location.search);const _m=_p.get('menu');go((_m&&MENUS.some(x=>x[0]===_m))?_m:(_p.get('qna')==='1'?'qna':'absensi'))}
+  updateBadges();maybeAskNotif();
   banner('🕌','Assalamu’alaikum, '+firstName(ME)+'!','Selamat datang di Hub Deenamic');
 }
 async function tryAutoLogin(){let t;try{t=JSON.parse(localStorage.getItem('hub:remember')||'null')}catch(_){t=null}
@@ -784,6 +818,7 @@ function logout(){ME=null;$('meBox').style.display='none';$('logoutBtn').style.d
 
 /* ================== SIDEBAR NAV ================== */
 const MENUS=[
+  ['pengumuman','📢','Pengumuman'],
   ['absensi','✅','Absensi'],
   ['info','🗓️','Jadwal & Info'],
   ['presentasi','📚','Presentasi & Tugas'],
@@ -795,7 +830,7 @@ const MENUS=[
 let curMenu='login';
 function buildMenu(){const m=$('sbMenu');m.innerHTML='';
   MENUS.forEach(([id,ic,lb])=>{const d=document.createElement('div');d.className='sb-item';d.dataset.m=id;
-    d.innerHTML='<span class="ic">'+ic+'</span>'+lb;d.onclick=()=>go(id);m.appendChild(d)})}
+    d.innerHTML='<span class="ic">'+ic+'</span><span class="lbl">'+lb+'</span><span class="sb-badge" data-badge="'+id+'"></span>';d.onclick=()=>go(id);m.appendChild(d)});updateBadges()}
 function toggleSidebar(force){const sb=$('sidebar'),sc=$('scrim');const open=force==null?!sb.classList.contains('open'):force;
   sb.classList.toggle('open',open);sc.classList.toggle('show',open)}
 async function go(id){curMenu=id;
@@ -805,8 +840,10 @@ async function go(id){curMenu=id;
   const meta=MENUS.find(x=>x[0]===id);if(meta){$('tbTitle').textContent=meta[2];$('tbSub').textContent='Hub Deenamic'}
   window.scrollTo(0,0);if(window.innerWidth<900)toggleSidebar(false);
   if(['absensi','kas','tugas'].includes(id))await loadAll();
-  if(id==='qna')await loadQna();if(id==='saran')await loadSaran();if(id==='info')await loadInfo();if(id==='presentasi')await loadPresentasi();if(id==='shalat')await loadShalat();
+  if(id==='qna')await loadQna();if(id==='saran')await loadSaran();if(id==='info')await loadInfo();if(id==='presentasi')await loadPresentasi();if(id==='shalat')await loadShalat();if(id==='pengumuman')await loadPengumuman();
+  markSeen(id);
   renderMenu(id);
+  updateBadges();
 }
 function renderMenu(id){
   if(id==='absensi')renderAbsensi();
@@ -817,6 +854,7 @@ function renderMenu(id){
   else if(id==='info')renderInfo();
   else if(id==='presentasi')renderPresentasi();
   else if(id==='shalat')renderShalat();
+  else if(id==='pengumuman')renderPengumuman();
 }
 </script>
 <script>
@@ -1293,6 +1331,79 @@ async function kirimSaran(){const isi=$('saranIsi').value.trim();if(!isi){toast(
   if(error){toast('Gagal kirim');console.error(error);return}STATE.saran=[data,...STATE.saran];toast('Masukan terkirim 🙏');renderSaran()}
 async function hapusSaran(id){const admin=can('saran');const ok=await confirmBox(admin?'Hapus masukan ini?':'Batalkan / hapus masukan kamu?',{yes:admin?'Hapus':'Batalkan'});if(!ok)return;
   const {error}=await sb.from('saran').delete().eq('id',id);if(error){toast('Gagal hapus');return}STATE.saran=STATE.saran.filter(s=>s.id!==id);toast('Dihapus');renderSaran()}
+
+/* ================== PAPAN PENGUMUMAN ================== */
+const PENG_KAT=[['penting','🔴','Penting'],['umum','📢','Umum'],['ujian','📝','Ujian'],['tugas','📚','Tugas'],['presentasi','🎤','Presentasi'],['kas','💰','Kas']];
+const KAT_LABEL=Object.fromEntries(PENG_KAT.map(k=>[k[0],k[1]+' '+k[2]]));
+let pengEditing=null;
+async function loadPengumuman(){const {data}=await sb.from('pengumuman').select('*').order('created_at',{ascending:false});STATE.pengumuman=data||[]}
+function renderPengumuman(){const box=$('pengBody');if(!box)return;const adm=can('pengumuman');let h='';
+  if(adm){const ed=pengEditing?STATE.pengumuman.find(x=>x.id===pengEditing):null;const eKat=(ed&&Array.isArray(ed.kategori))?ed.kategori:[];const eTag=(ed&&Array.isArray(ed.tag_nims))?ed.tag_nims:[];
+    h+=`<div class="card solid"><div class="divlabel">${ed?'✏️ Edit Pengumuman':'➕ Buat Pengumuman'}</div>`;
+    h+=`<label class="lb">Judul</label><input id="pgJudul" placeholder="mis. Libur UTS minggu depan" value="${ed?esc(ed.judul||''):''}">`;
+    h+=`<label class="lb">Isi</label><textarea id="pgIsi" placeholder="Tulis isi pengumuman...">${ed?esc(ed.isi||''):''}</textarea>`;
+    h+=`<label class="lb">Kategori (boleh lebih dari satu)</label><div class="jenis" id="pgKat">`+PENG_KAT.map(k=>`<button type="button" class="${eKat.includes(k[0])?'on':''}" data-k="${k[0]}" onclick="this.classList.toggle('on')">${k[1]} ${k[2]}</button>`).join('')+`</div>`;
+    h+=`<label class="lb">Tag orang (opsional — mereka dapat notif)</label><div class="jenis" id="pgTags">`+STUDENTS.map(s=>`<button type="button" class="${eTag.includes(s.nim)?'on':''}" data-nim="${s.nim}" onclick="this.classList.toggle('on')">${esc(firstName(s))}</button>`).join('')+`</div>`;
+    h+=`<button class="btn" onclick="savePeng()">${ed?'Simpan Perubahan':'Terbitkan 📢'}</button>`;
+    if(ed)h+=`<button class="btn ghost" onclick="cancelPeng()" style="margin-top:8px">Batal</button>`;
+    h+=`</div>`;}
+  const list=STATE.pengumuman.slice().sort((a,b)=>(((b.kategori||[]).includes('penting'))?1:0)-(((a.kategori||[]).includes('penting'))?1:0)||new Date(b.created_at)-new Date(a.created_at));
+  h+=`<div class="divlabel">Pengumuman (${list.length})</div>`;
+  if(!list.length)h+=`<div class="card"><div class="empty"><span class="em">📢</span>Belum ada pengumuman.</div></div>`;
+  else list.forEach(p=>{const kat=Array.isArray(p.kategori)?p.kategori:[];const pent=kat.includes('penting');const iTag=Array.isArray(p.tag_nims)&&ME&&p.tag_nims.includes(ME.nim);
+    h+=`<div class="card" style="${pent?'border-left:4px solid #e11d48':(iTag?'border-left:4px solid #0b5cad':'')}"><div style="display:flex;align-items:flex-start;gap:10px">`;
+    h+=`<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:15px">${pent?'🔴 ':'📢 '}${esc(p.judul||'(tanpa judul)')}</div>`;
+    if(kat.length)h+=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">`+kat.map(k=>`<span class="badge" style="background:#eef3fb;color:#0b5cad;font-size:10.5px">${esc(KAT_LABEL[k]||k)}</span>`).join('')+`</div>`;
+    h+=`<div style="font-size:14px;line-height:1.55;margin-top:6px;white-space:pre-wrap">${esc(p.isi||'')}</div>`;
+    if(Array.isArray(p.tag_nims)&&p.tag_nims.length)h+=`<div style="font-size:11.5px;color:#0b5cad;margin-top:6px">🏷️ ${p.tag_nims.map(n=>esc(firstName(byNim(n)))).join(', ')}</div>`;
+    h+=`<div style="font-size:11.5px;color:var(--text2);margin-top:8px">✍️ ${esc(p.dibuat_oleh||'?')} · ${timeago(p.created_at)}</div></div>`;
+    if(adm)h+=`<div style="display:flex;flex-direction:column;gap:6px"><button class="iconbtn" onclick="editPeng('${p.id}')">✏️</button><button class="iconbtn" onclick="hapusPeng('${p.id}')">🗑️</button></div>`;
+    h+=`</div></div>`;});
+  box.innerHTML=h}
+async function savePeng(){const judul=$('pgJudul').value.trim();const isi=$('pgIsi').value.trim();
+  const kategori=Array.from(document.querySelectorAll('#pgKat button.on')).map(b=>b.dataset.k);
+  const tag_nims=Array.from(document.querySelectorAll('#pgTags button.on')).map(b=>b.dataset.nim);
+  if(!judul&&!isi){toast('Isi judul atau isi pengumuman');return}
+  const penting=kategori.includes('penting');const isNew=!pengEditing;let error;
+  if(pengEditing){({error}=await sb.from('pengumuman').update({judul,isi,kategori,tag_nims,penting}).eq('id',pengEditing))}
+  else{({error}=await sb.from('pengumuman').insert({judul,isi,kategori,tag_nims,penting,dibuat_oleh:ME.n}))}
+  if(error){toast('Gagal menyimpan');console.error(error);return}
+  if(isNew){const t=penting?'📢 Pengumuman Penting':'🔔 Pengumuman Baru';const bd=judul||isi||'';
+    if(tag_nims.length){pushNotify({title:'🏷️ Kamu di-tag di pengumuman',body:bd,url:'/?menu=pengumuman',onlyNims:tag_nims});pushNotify({title:t,body:bd,url:'/?menu=pengumuman',excludeNims:tag_nims.concat([ME.nim])})}
+    else{pushNotify({title:t,body:bd,url:'/?menu=pengumuman',excludeNims:[ME.nim]})}}
+  pengEditing=null;await loadPengumuman();renderPengumuman();updateBadges();toast('Pengumuman tersimpan ✅')}
+function editPeng(id){pengEditing=id;renderPengumuman();const el=$('pgJudul');if(el)try{el.scrollIntoView({behavior:'smooth',block:'center'})}catch(_){}}
+function cancelPeng(){pengEditing=null;renderPengumuman()}
+async function hapusPeng(id){const ok=await confirmBox('Hapus pengumuman ini?',{emoji:'🗑️',title:'Hapus Pengumuman',yes:'Ya, hapus',no:'Batal'});if(!ok)return;
+  const {error}=await sb.from('pengumuman').delete().eq('id',id);if(error){toast('Gagal menghapus');return}
+  await loadPengumuman();renderPengumuman();updateBadges();toast('Pengumuman dihapus')}
+
+/* ---- BADGE belum-dibaca (per user, localStorage) ---- */
+function seenKey(id){return 'hub:seen:'+id+':'+(ME?ME.nim:'x')}
+function markSeen(id){if(id==='pengumuman'||id==='presentasi'){try{localStorage.setItem(seenKey(id),String(Date.now()))}catch(_){}}}
+function unreadCount(id,rows){let last=0;try{last=Number(localStorage.getItem(seenKey(id))||0)}catch(_){}
+  return (rows||[]).filter(r=>{const t=r.created_at?Date.parse(r.created_at):0;return t>last&&r.dibuat_oleh!==(ME&&ME.n)}).length}
+function updateBadges(){const map={pengumuman:unreadCount('pengumuman',STATE.pengumuman),presentasi:unreadCount('presentasi',STATE.pres)};
+  document.querySelectorAll('.sb-badge').forEach(b=>{const id=b.dataset.badge;const n=map[id]||0;if(n>0){b.textContent=n>99?'99+':String(n);b.style.display='flex'}else{b.style.display='none'}})}
+
+/* ---- IZIN NOTIFIKASI (in-app + OS) ---- */
+function showOsNotif(title,body){try{if('Notification'in window&&Notification.permission==='granted'&&navigator.serviceWorker){navigator.serviceWorker.ready.then(reg=>{reg.showNotification(title,{body:body||'',icon:'icon-192.png',badge:'icon-192.png',vibrate:[200,100,200],tag:'hub-'+Date.now()})}).catch(()=>{})}}catch(_){}}
+function notifState(){return ('Notification'in window)?Notification.permission:'unsupported'}
+async function requestNotif(){if(!('Notification'in window)){toast('Browser tidak mendukung notifikasi');return}
+  try{const p=await Notification.requestPermission();updateNotifUi();if(p==='granted'){toast('Notifikasi aktif 🔔');showOsNotif('Notifikasi aktif ✅','Kamu akan menerima pengumuman & pengingat penting');subscribePush()}else{toast('Izin ditolak — bisa diaktifkan lewat setting browser')}}catch(_){}}
+function maybeAskNotif(){updateNotifUi();if(('Notification'in window)&&Notification.permission==='granted')subscribePush()}
+function urlB64ToUint8(b64){const pad='='.repeat((4-b64.length%4)%4);const s=(b64+pad).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(s);const arr=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);return arr}
+async function subscribePush(){try{if(!('serviceWorker'in navigator)||!('PushManager'in window)||!VAPID_PUBLIC)return;const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();if(!sub){sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToUint8(VAPID_PUBLIC)})}const j=sub.toJSON();await sb.from('push_subscriptions').upsert({nim:ME?ME.nim:null,nama:ME?ME.n:null,endpoint:sub.endpoint,p256dh:j.keys&&j.keys.p256dh,auth:j.keys&&j.keys.auth,ua:navigator.userAgent},{onConflict:'endpoint'})}catch(e){console.warn('push subscribe gagal',e)}}
+async function pushNotify(payload){try{await fetch(NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})}catch(_){}}
+function updateNotifUi(){const el=$('notifBar');if(!el)return;const s=notifState();
+  if(s==='granted'||s==='unsupported'){el.style.display='none';return}
+  el.style.display='flex';
+  el.innerHTML=(s==='denied')
+    ? `<span>🔕 Notifikasi diblokir. Aktifkan lewat setting browser (Situs ini › Notifikasi › Izinkan) biar gak ketinggalan.</span>`
+    : `<span>🔔 Aktifkan notifikasi biar gak ketinggalan pengumuman & pengingat presentasi.</span><button class="btn-sm" onclick="requestNotif()">Izinkan</button>`;
+}
+
+/* ================== JADWAL & INFO + REKAP (master di web) ================== */
 
 /* ================== JADWAL & INFO + REKAP (master di web) ================== */
 let jEditId=null,dEditId=null,rekapMatkul='(Semua)';
