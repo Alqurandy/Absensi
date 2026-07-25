@@ -83,6 +83,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .sb-badge{min-width:19px;height:19px;padding:0 6px;border-radius:10px;background:#e11d48;color:#fff;font-size:11px;font-weight:800;display:none;align-items:center;justify-content:center}
 #notifBar{position:fixed;left:0;right:0;bottom:0;z-index:44;display:none;align-items:center;gap:10px;justify-content:center;padding:10px 14px;background:#e11d48;color:#fff;font-size:13px;font-weight:600;box-shadow:0 -4px 12px rgba(0,0,0,.18);text-align:center}
 #notifBar .btn-sm{background:#fff;color:#e11d48;border:none;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer;font-size:12.5px;white-space:nowrap}
+#updateBar{position:fixed;left:12px;right:12px;bottom:14px;z-index:60;display:none;align-items:center;gap:12px;justify-content:space-between;padding:12px 14px;background:linear-gradient(135deg,#0b5cad,#2f86e0);color:#fff;font-size:13.5px;font-weight:700;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:520px;margin:0 auto}
+#updateBar button{background:#fff;color:#0b5cad;border:none;border-radius:9px;padding:8px 14px;font-weight:800;cursor:pointer;font-size:13px;white-space:nowrap;flex-shrink:0}
 .sb-item:hover{background:rgba(255,255,255,.1)}
 .sb-item.on{background:#fff;color:var(--blue);box-shadow:var(--shadow-s)}
 .sb-foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.15);font-size:11px;color:rgba(255,255,255,.6)}
@@ -355,7 +357,7 @@ textarea{resize:vertical;min-height:80px}
       <div><b>Hub Deenamic</b><span>PAI Semester III</span></div>
     </div>
     <nav class="sb-menu" id="sbMenu"></nav>
-    <div class="sb-foot">© Deenamic ’25 · v3.5</div>
+    <div class="sb-foot">© Deenamic ’25 · v3.6</div>
   </aside>
   <div class="scrim" id="scrim" onclick="toggleSidebar(false)"></div>
 
@@ -365,7 +367,7 @@ textarea{resize:vertical;min-height:80px}
       <button class="burger" onclick="toggleSidebar()">☰</button>
       <div class="tb-title"><b id="tbTitle">Hub Deenamic</b><span id="tbSub">Silakan masuk</span></div>
       <div class="mebox" id="meBox"><b id="meName"></b><span id="meRole"></span></div>
-      <button id="logoutBtn" onclick="logout()" title="Keluar">⏻</button>
+      <button id="logoutBtn" onclick="logout()" title="Keluar" aria-label="Keluar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:block"><path d="M12 3.5v8.5"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></button>
     </div>
 
     <div id="main">
@@ -446,6 +448,7 @@ textarea{resize:vertical;min-height:80px}
 </div>
 
 <div id="notifBar"></div>
+  <div id="updateBar"><span>🎉 Versi baru tersedia</span><button onclick="doUpdate()">Muat ulang</button></div>
 
 <!-- projector overlay -->
 <div class="proj" id="proj">
@@ -823,7 +826,7 @@ async function enterApp(cand,silent){
   toast(silent?'Selamat datang kembali...':'Memuat data...');
   await loadAll();await loadQna();await loadSaran();await loadInfo();await loadPengumuman();await loadPresentasi();
   registerDevice();if(canSeeStatus())await loadStatus();
-  subscribeRealtime();buildMenu();startPresence();
+  subscribeRealtime();buildMenu();startHubPresence();
   {const _p=new URLSearchParams(location.search);const _m=_p.get('menu');go((_m&&MENUS.some(x=>x[0]===_m))?_m:(_p.get('qna')==='1'?'qna':'absensi'))}
   updateBadges();maybeAskNotif();
   banner('🕌','Assalamu’alaikum, '+firstName(ME)+'!','Selamat datang di Hub Deenamic');
@@ -980,7 +983,7 @@ function isInstalled(){try{return (window.matchMedia&&window.matchMedia('(displa
 async function loadStatus(){try{const {data:pk}=await sb.from('perangkat').select('*');STATE.perangkat=pk||[];const {data:ps}=await sb.from('push_subscriptions').select('nim');NOTIF_NIMS=new Set((ps||[]).map(x=>x.nim).filter(Boolean))}catch(_){}}
 async function registerDevice(){if(!ME)return;try{await sb.from('perangkat').upsert({nim:ME.nim,installed:isInstalled(),ua:navigator.userAgent,updated_at:new Date().toISOString()},{onConflict:'nim'})}catch(_){}}
 async function onStatusChange(){if(!canSeeStatus())return;await loadStatus();if(curMenu==='absensi'&&absTab==='dash')renderAbsPane()}
-function startPresence(){try{if(window.__pres)return;const ch=sb.channel('presence-hub',{config:{presence:{key:ME?ME.nim:clientId()}}});window.__pres=ch;ch.on('presence',{event:'sync'},()=>{const st=ch.presenceState();const set=new Set();Object.values(st).forEach(arr=>arr.forEach(m=>{if(m&&m.nim)set.add(m.nim)}));ONLINE=set;if(canSeeStatus()&&curMenu==='absensi'&&absTab==='dash')renderAbsPane()});ch.subscribe(async s=>{if(s==='SUBSCRIBED'){try{await ch.track({nim:ME?ME.nim:null,at:Date.now()})}catch(_){}}})}catch(_){}}
+function startHubPresence(){try{if(window.__presHub)return;const ch=sb.channel('presence-hub',{config:{presence:{key:ME?ME.nim:clientId()}}});window.__presHub=ch;ch.on('presence',{event:'sync'},()=>{const st=ch.presenceState();const set=new Set();Object.values(st).forEach(arr=>arr.forEach(m=>{if(m&&m.nim)set.add(m.nim)}));ONLINE=set;if(canSeeStatus()&&curMenu==='absensi'&&absTab==='dash')renderAbsPane()});ch.subscribe(async s=>{if(s==='SUBSCRIBED'){try{await ch.track({nim:ME?ME.nim:null,at:Date.now()})}catch(_){}}})}catch(_){}}
 function statusBadges(nim){const on=ONLINE.has(nim);const r=STATE.perangkat.find(x=>x.nim===nim);const opened=!!r;const inst=r?!!r.installed:false;const notif=NOTIF_NIMS.has(nim);
   const b=(txt,ok,warn)=>`<span style="display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin:3px 5px 0 0;background:${ok?'#dcfce7':(warn?'#fee2e2':'#eef1f5')};color:${ok?'#15803d':(warn?'#b91c1c':'#64748b')}">${txt}</span>`;
   let s='<span style="display:block;margin-top:3px">';
@@ -1435,7 +1438,7 @@ function renderPengumuman(){const box=$('pengBody');if(!box)return;const adm=can
     if(kat.length)h+=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">`+kat.map(k=>`<span class="badge" style="background:#eef3fb;color:#0b5cad;font-size:10.5px">${esc(KAT_LABEL[k]||k)}</span>`).join('')+`</div>`;
     h+=`<div style="font-size:14px;line-height:1.55;margin-top:6px;white-space:pre-wrap">${esc(p.isi||'')}</div>`;
     if(Array.isArray(p.tag_nims)&&p.tag_nims.length)h+=`<div style="font-size:11.5px;color:#0b5cad;margin-top:6px">🏷️ ${p.tag_nims.map(n=>esc(firstName(byNim(n)))).join(', ')}</div>`;
-    h+=`<div style="font-size:11.5px;color:var(--text2);margin-top:8px">✍️ ${pengAuthor(p.dibuat_oleh)} · ${timeago(p.created_at)}</div>${canSeeRead()?`<div style="font-size:11.5px;color:#0b5cad;margin-top:6px;cursor:pointer;font-weight:600" onclick="showPengReaders('${p.id}')">👁 ${readersOf(p.id).length}/${STUDENTS.length} sudah lihat · ketuk untuk detail</div>`:''}</div>`;
+    h+=`<div style="font-size:11.5px;color:var(--text2);margin-top:8px">✍️ ${pengAuthor(p.dibuat_oleh)} · ${timeago(p.created_at)}</div>${canSeeRead()?`<div style="font-size:11.5px;color:#0b5cad;margin-top:6px;cursor:pointer;font-weight:600" onclick="showPengReaders('${p.id}')">�� ${readersOf(p.id).length}/${STUDENTS.length} sudah lihat · ketuk untuk detail</div>`:''}</div>`;
     if(adm)h+=`<div style="display:flex;flex-direction:column;gap:6px"><button class="iconbtn" onclick="editPeng('${p.id}')">✏️</button><button class="iconbtn" onclick="hapusPeng('${p.id}')">🗑️</button></div>`;
     h+=`</div></div>`;});
   box.innerHTML=h}
@@ -1577,7 +1580,18 @@ function paneRekap(){let ses=STATE.rekapSes.slice();if(rekapMatkul!=='(Semua)')s
 /* ================== INIT + PWA ================== */
 fillNames();
 window.addEventListener('load',()=>{setTimeout(()=>$('splash').classList.add('hide'),3000);tryAutoLogin()});
-if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(()=>{})}
+let __upReg=null,__doingUpdate=false;
+function showUpdateBar(reg){__upReg=reg;const el=$('updateBar');if(el)el.style.display='flex'}
+function doUpdate(){__doingUpdate=true;try{const w=__upReg&&__upReg.waiting;if(w){w.postMessage({type:'SKIP_WAITING'})}else{location.reload()}}catch(_){location.reload()}}
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(__doingUpdate)location.reload()});
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    if(reg.waiting&&navigator.serviceWorker.controller)showUpdateBar(reg);
+    reg.addEventListener('updatefound',()=>{const nw=reg.installing;if(!nw)return;nw.addEventListener('statechange',()=>{if(nw.state==='installed'&&navigator.serviceWorker.controller)showUpdateBar(reg)})});
+    setInterval(()=>{reg.update().catch(()=>{})},60000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{})});
+  }).catch(()=>{})
+}
 </script>
 </body>
 </html>
