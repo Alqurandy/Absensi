@@ -85,6 +85,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 #notifBar .btn-sm{background:#fff;color:#e11d48;border:none;border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer;font-size:12.5px;white-space:nowrap}
 #updateBar{position:fixed;left:12px;right:12px;bottom:14px;z-index:60;display:none;align-items:center;gap:12px;justify-content:space-between;padding:12px 14px;background:linear-gradient(135deg,#0b5cad,#2f86e0);color:#fff;font-size:13.5px;font-weight:700;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:520px;margin:0 auto}
 #updateBar button{background:#fff;color:#0b5cad;border:none;border-radius:9px;padding:8px 14px;font-weight:800;cursor:pointer;font-size:13px;white-space:nowrap;flex-shrink:0}
+#offlineBar{position:fixed;left:0;right:0;top:0;z-index:70;display:none;text-align:center;padding:8px 14px;background:#334155;color:#fff;font-size:12.5px;font-weight:700;box-shadow:0 2px 10px rgba(0,0,0,.2)}
 .sb-item:hover{background:rgba(255,255,255,.1)}
 .sb-item.on{background:#fff;color:var(--blue);box-shadow:var(--shadow-s)}
 .sb-foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.15);font-size:11px;color:rgba(255,255,255,.6)}
@@ -367,7 +368,7 @@ textarea{resize:vertical;min-height:80px}
       <button class="burger" onclick="toggleSidebar()">☰</button>
       <div class="tb-title"><b id="tbTitle">Hub Deenamic</b><span id="tbSub">Silakan masuk</span></div>
       <div class="mebox" id="meBox"><b id="meName"></b><span id="meRole"></span></div>
-      <button id="logoutBtn" onclick="logout()" title="Keluar" aria-label="Keluar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:block"><path d="M12 3.5v8.5"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></button>
+      <button id="logoutBtn" onclick="askLogout()" title="Keluar" aria-label="Keluar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:block"><path d="M12 3.5v8.5"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg></button>
     </div>
 
     <div id="main">
@@ -449,6 +450,7 @@ textarea{resize:vertical;min-height:80px}
 
 <div id="notifBar"></div>
   <div id="updateBar"><span>🎉 Versi baru tersedia</span><button onclick="doUpdate()">Muat ulang</button></div>
+  <div id="offlineBar">📴 Kamu sedang offline — sebagian data mungkin belum ter-update.</div>
 
 <!-- projector overlay -->
 <div class="proj" id="proj">
@@ -559,6 +561,14 @@ function beep(freq,dur){try{const c=window.__ac||(window.__ac=new (window.AudioC
   g.gain.setValueAtTime(.14,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+(dur||.25));
   o.start();o.stop(c.currentTime+(dur||.25))}catch(e){}}
 function vibrate(p){if(navigator.vibrate)navigator.vibrate(p)}
+function haptik(){try{if(navigator.vibrate)navigator.vibrate(18)}catch(_){}}
+function guard(k){window.__busy=window.__busy||{};if(window.__busy[k])return false;window.__busy[k]=true;setTimeout(()=>{window.__busy[k]=false},1500);return true}
+function salam(){const h=new Date().getHours();return h<11?'Selamat pagi':h<15?'Selamat siang':h<18?'Selamat sore':'Selamat malam'}
+async function askLogout(){const ok=await confirmBox('Kamu akan keluar dari akun ini.',{emoji:'🚪',title:'Keluar dari akun?',yes:'Ya, keluar',no:'Batal'});if(ok)logout()}
+function updateOffline(){const el=$('offlineBar');if(el)el.style.display=navigator.onLine?'none':'block'}
+window.addEventListener('online',()=>{updateOffline();toast('🟢 Kembali online')});
+window.addEventListener('offline',()=>{updateOffline();toast('📴 Kamu sedang offline')});
+updateOffline();
 function tone(freq,dur,vol){try{const c=window.__ac||(window.__ac=new (window.AudioContext||window.webkitAudioContext)());if(c.state==='suspended')c.resume();
   const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=freq||1046;o.type='triangle';
   const t=c.currentTime;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol||.85,t+.012);g.gain.exponentialRampToValueAtTime(.0001,t+(dur||.25));
@@ -654,7 +664,7 @@ async function hapusPres(id){const ok=await confirmBox('Hapus jadwal presentasi 
 async function mulaiQnaFromPres(id){const p=STATE.pres.find(x=>x.id===id);await go('qna');const j=$('qsJudul'),m=$('qsMatkul');if(j&&p){j.value=p.judul||''}if(m&&p){m.value=p.matkul||''}if(j){try{j.scrollIntoView({behavior:'smooth',block:'center'})}catch(_){}toast('Judul & matkul terisi — masukkan password lalu Mulai Sesi 🎤')}else{toast('Sesi QnA sedang aktif — akhiri dulu untuk mulai sesi baru')}}
 function presCard(p,adm){const done=p.status==='selesai';const n=presDaysLeft(p.tanggal);const today=n===0&&!done;const mine=inPresGroup(p);const canUp=adm||mine;
   let h=`<div class='qcard' style='${done?'opacity:.55;':''}${mine?'border:2px solid var(--blue)':''}'>`;
-  h+=`<div style='display:flex;justify-content:space-between;gap:8px;align-items:flex-start'><div>${p.nomor_kelompok!=null?`<span class='badge b-Izin'>Kel. ${esc(String(p.nomor_kelompok))}</span> `:''}<span class='badge b-Izin' style='font-size:10px'>${esc(p.matkul||'')}</span></div><span class='badge ${done?'b-Hadir':(today?'b-Belum':'b-Izin')}'>${done?'✅ Selesai':(today?'🔥 Hari ini':presCountdown(p.tanggal))}</span></div>`;
+  h+=`<div style='display:flex;justify-content:space-between;gap:8px;align-items:flex-start'><div>${p.nomor_kelompok!=null?`<span class='badge b-Izin'>Kel. ${esc(String(p.nomor_kelompok))}</span> `:''}<span class='badge b-Izin' style='font-size:10px'>${esc(p.matkul||'')}</span></div><span class='badge ${done?'b-Hadir':(today?'b-Belum':'b-Izin')}'>${done?'��� Selesai':(today?'🔥 Hari ini':presCountdown(p.tanggal))}</span></div>`;
   h+=`<div style='font-weight:700;margin-top:6px'>${esc(p.judul||'-')}${mine?` · <b style='color:var(--blue)'>kelompokmu</b>`:''}</div>`;
   h+=`<div class='mini' style='margin-top:4px'>👥 ${esc((p.anggota_arr&&p.anggota_arr.length)?p.anggota_arr.join(', '):'-')}</div>`;
   h+=`<div class='mini' style='margin-top:2px'>🗓️ ${esc(presFmt(p.tanggal))}${p.catatan?' · '+esc(p.catatan):''}</div>`;
@@ -732,7 +742,7 @@ function renderPresentasi(){const box=$('presBody');if(!box)return;const adm=can
   let list=all.slice();if(presMatkulF!=='(Semua)')list=list.filter(p=>p.matkul===presMatkulF);
   list.sort((a,b)=>{const sa=a.status==='selesai'?1:0,sb2=b.status==='selesai'?1:0;if(sa!==sb2)return sa-sb2;const c=String(a.tanggal||'').localeCompare(String(b.tanggal||''));if(c!==0)return c;return (a.nomor_kelompok||99)-(b.nomor_kelompok||99)});
   h+=`<div class='divlabel'>Semua Jadwal (${list.length})</div>`;
-  if(!list.length)h+=`<div class='card'><div class='empty'>Belum ada jadwal untuk filter ini.</div></div>`;
+  if(!list.length)h+=`<div class='card'><div class='empty'><span class='em'>🗂️</span>Belum ada jadwal untuk filter ini.</div></div>`;
   list.forEach(p=>{h+=presCard(p,adm)});
   box.innerHTML=h;
   if(adm&&presEditing!==null)fillPresMembers();
@@ -829,7 +839,7 @@ async function enterApp(cand,silent){
   subscribeRealtime();buildMenu();startHubPresence();
   {const _p=new URLSearchParams(location.search);const _m=_p.get('menu');go((_m&&MENUS.some(x=>x[0]===_m))?_m:(_p.get('qna')==='1'?'qna':'absensi'))}
   updateBadges();maybeAskNotif();
-  banner('🕌','Assalamu’alaikum, '+firstName(ME)+'!','Selamat datang di Hub Deenamic');
+  banner('🕌','Assalamu’alaikum, '+firstName(ME)+'!',salam()+', selamat datang di Hub Deenamic');
 }
 async function tryAutoLogin(){let t;try{t=JSON.parse(localStorage.getItem('hub:remember')||'null')}catch(_){t=null}
   if(!t||!t.nim||!t.exp||Date.now()>t.exp){if(t){try{localStorage.removeItem('hub:remember')}catch(_){}}return}
@@ -925,7 +935,7 @@ function paneAbsen(){const s=DB.s;
 function absenSekarang(status){const s=DB.s;if(!s)return;
   const save=(lat,lon)=>{let far=false;if(s.lat&&lat!=null){if(dist(lat,lon,s.lat,s.lon)>(s.radius||100))far=true}
     const go2=()=>{const hm=new Date().toTimeString().slice(0,5);
-      apiUpsertAbsen({sid:s.id,nim:ME.nim,nama:ME.n,status,jam:hm,lat,lon,by:'mandiri',ts:Date.now()}).then(ok=>{if(ok){toast('Absensi tersimpan: '+status);renderAbsPane()}})};
+      apiUpsertAbsen({sid:s.id,nim:ME.nim,nama:ME.n,status,jam:hm,lat,lon,by:'mandiri',ts:Date.now()}).then(ok=>{if(ok){haptik();toast('Absensi tersimpan: '+status);renderAbsPane()}})};
     if(far)confirmBox('Kamu terdeteksi di luar radius kelas. Tetap kirim untuk diverifikasi pengurus?',{emoji:'📍',title:'Di luar radius',yes:'Tetap kirim',no:'Batal'}).then(v=>{if(v)go2()});
     else go2();};
   if(!navigator.geolocation){save(null,null);return}
@@ -1071,7 +1081,7 @@ async function bayarUtang(nim,amt){
   const {data,error}=await sb.from("transaksi").insert(row).select().single();
   if(error){toast("Gagal simpan pembayaran");console.error(error);return}
   STATE.trx=[data,...STATE.trx];renderKas();
-  if(utangSisa(nim)<=0){toast("Utang "+(byNim(nim).panggil||nama)+" LUNAS 🎉 · saldo +"+rupiah(bayar));confetti()}
+  if(utangSisa(nim)<=0){toast("Utang "+(byNim(nim).panggil||nama)+" LUNAS 🎉 · saldo +"+rupiah(bayar));confetti();vibrate([80,40,120])}
   else toast("Bayar "+rupiah(bayar)+" masuk kas · sisa utang "+rupiah(utangSisa(nim)));
 }
 function cicilUtang(nim){const el=$("ut-in-"+nim);bayarUtang(nim,el?el.value:0)}
@@ -1095,9 +1105,10 @@ async function toggleKas(nim,wk){let row=STATE.kas.find(k=>k.nim===nim);if(!row)
   const {error}=await sb.from("kas").upsert(patch,{onConflict:"nim"});
   if(error){toast("Gagal simpan kas");console.error(error);Object.keys(undo).forEach(k=>{row[k]=undo[k]});renderKas()}}
 async function tambahTrx(){const jumlah=Number($("txJumlah").value);if(!jumlah){toast("Isi jumlah dulu");return}
+  if(!guard('tambahTrx'))return;
   const row={jenis:trxJenis,tanggal:$("txTgl").value||today(),jumlah,kategori:$("txKategori").value,keterangan:$("txKet").value.trim(),dibuat_oleh:ME.n};
   const {data,error}=await sb.from("transaksi").insert(row).select().single();if(error){toast("Gagal simpan transaksi");console.error(error);return}
-  STATE.trx=[data,...STATE.trx];toast("Transaksi ditambahkan");renderKas()}
+  STATE.trx=[data,...STATE.trx];haptik();toast("Transaksi ditambahkan");renderKas()}
 async function hapusTrx(id){const ok=await confirmBox('Hapus transaksi ini dari buku kas?');if(!ok)return;
   const {error}=await sb.from("transaksi").delete().eq("id",id);if(error){toast("Gagal hapus");return}
   STATE.trx=STATE.trx.filter(t=>t.id!==id);toast("Transaksi dihapus");renderKas()}
@@ -1403,8 +1414,9 @@ function renderSaran(){const box=$('saranBody');if(!box)return;const admin=can('
   box.innerHTML=h}
 function setSaranKat(k){saranKat=k;renderSaran()}
 async function kirimSaran(){const isi=$('saranIsi').value.trim();if(!isi){toast('Tulis pesan dulu');return}
+  if(!guard('kirimSaran'))return;
   const {data,error}=await sb.from('saran').insert({nama:saranAnon?null:ME.n,nim:saranAnon?null:ME.nim,anonim:saranAnon,kategori:saranKat,isi,client_id:clientId()}).select().single();
-  if(error){toast('Gagal kirim');console.error(error);return}STATE.saran=[data,...STATE.saran];toast('Masukan terkirim 🙏');renderSaran()}
+  if(error){toast('Gagal kirim');console.error(error);return}STATE.saran=[data,...STATE.saran];haptik();toast('Masukan terkirim 🙏');renderSaran()}
 async function hapusSaran(id){const admin=can('saran');const ok=await confirmBox(admin?'Hapus masukan ini?':'Batalkan / hapus masukan kamu?',{yes:admin?'Hapus':'Batalkan'});if(!ok)return;
   const {error}=await sb.from('saran').delete().eq('id',id);if(error){toast('Gagal hapus');return}STATE.saran=STATE.saran.filter(s=>s.id!==id);toast('Dihapus');renderSaran()}
 
@@ -1442,7 +1454,7 @@ function renderPengumuman(){const box=$('pengBody');if(!box)return;const adm=can
     if(adm)h+=`<div style="display:flex;flex-direction:column;gap:6px"><button class="iconbtn" onclick="editPeng('${p.id}')">✏️</button><button class="iconbtn" onclick="hapusPeng('${p.id}')">🗑️</button></div>`;
     h+=`</div></div>`;});
   box.innerHTML=h}
-async function savePeng(){const judul=$('pgJudul').value.trim();const isi=$('pgIsi').value.trim();
+async function savePeng(){if(!guard('savePeng'))return;const judul=$('pgJudul').value.trim();const isi=$('pgIsi').value.trim();
   const kategori=Array.from(document.querySelectorAll('#pgKat button.on')).map(b=>b.dataset.k);
   const tag_nims=Array.from(document.querySelectorAll('#pgTags button.on')).map(b=>b.dataset.nim);
   if(!judul&&!isi){toast('Isi judul atau isi pengumuman');return}
@@ -1453,7 +1465,7 @@ async function savePeng(){const judul=$('pgJudul').value.trim();const isi=$('pgI
   if(isNew){const t=penting?'📢 Pengumuman Penting':'🔔 Pengumuman Baru';const bd=judul||isi||'';
     if(tag_nims.length){pushNotify({title:'🏷️ Kamu di-tag di pengumuman',body:bd,url:'/?menu=pengumuman',onlyNims:tag_nims});pushNotify({title:t,body:bd,url:'/?menu=pengumuman',excludeNims:tag_nims.concat([ME.nim])})}
     else{pushNotify({title:t,body:bd,url:'/?menu=pengumuman',excludeNims:[ME.nim]})}}
-  pengEditing=null;await loadPengumuman();renderPengumuman();markPengRead();updateBadges();toast('Pengumuman tersimpan ✅')}
+  pengEditing=null;await loadPengumuman();renderPengumuman();markPengRead();updateBadges();haptik();toast('Pengumuman tersimpan ✅')}
 function editPeng(id){pengEditing=id;renderPengumuman();const el=$('pgJudul');if(el)try{el.scrollIntoView({behavior:'smooth',block:'center'})}catch(_){}}
 function cancelPeng(){pengEditing=null;renderPengumuman()}
 async function hapusPeng(id){const ok=await confirmBox('Hapus pengumuman ini?',{emoji:'🗑️',title:'Hapus Pengumuman',yes:'Ya, hapus',no:'Batal'});if(!ok)return;
@@ -1506,7 +1518,7 @@ function renderInfo(){const box=$('infoBody');if(!box)return;const su=isSuper();
   h+=`<div class="divlabel">🗓️ Jadwal Kuliah</div>`;
   DAYS.forEach(day=>{const items=STATE.jadwal.filter(x=>x.hari===day).sort((a,b)=>(a.jam||'').localeCompare(b.jam||''));
     h+=`<div class="card"><div class="dayhd">${day}</div>`;
-    if(!items.length)h+=`<div class="empty" style="padding:12px 0">Belum ada jadwal.</div>`;
+    if(!items.length)h+=`<div class="empty" style="padding:12px 0"><span class="em">🗓️</span>Belum ada jadwal untuk hari ini.</div>`;
     else items.forEach(t=>{h+=`<div class="jrow"><div class="jt">${esc(t.jam||'-')}</div><div class="jm"><b>${esc(t.matkul||'-')}</b><span>👨‍🏫 ${esc(t.dosen||'-')}${t.ruang?' \u00b7 📍 '+esc(t.ruang):''}</span></div>`;
       if(su)h+=`<div class="jact"><button class="iconbtn" onclick="editJadwal('${t.id}')">✏️</button><button class="iconbtn" onclick="delJadwal('${t.id}')">🗑️</button></div>`;
       h+=`</div>`});
@@ -1514,7 +1526,7 @@ function renderInfo(){const box=$('infoBody');if(!box)return;const su=isSuper();
   if(su)h+=jadwalForm();
   h+=`<div class="divlabel">👨‍🏫 Kontak Dosen</div>`;
   const dl=STATE.dosen.slice().sort((a,b)=>(a.matkul||'').localeCompare(b.matkul||''));
-  if(!dl.length)h+=`<div class="card"><div class="empty">Belum ada data dosen.</div></div>`;
+  if(!dl.length)h+=`<div class="card"><div class="empty"><span class="em">👨‍🏫</span>Belum ada data dosen.</div></div>`;
   else{h+=`<div class="card">`;dl.forEach(d=>{const wa=waLink(d.no_hp);
       h+=`<div class="drow"><div class="dav">${initials(d.nama||'?')}</div><div class="nm"><b>${esc(d.nama||'-')}</b><span>${esc(d.matkul||'-')}${d.no_hp?' \u00b7 '+esc(d.no_hp):''}</span></div><div class="dact">`;
       if(wa)h+=`<a class="iconbtn" href="${wa}" target="_blank" title="Chat WhatsApp" style="display:inline-flex;align-items:center;gap:6px;background:#25D366;border-color:#25D366;color:#fff"><svg viewBox="0 0 24 24" width="16" height="16" fill="#fff" style="flex:none"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Chat Disini</a>`;
