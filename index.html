@@ -355,7 +355,7 @@ textarea{resize:vertical;min-height:80px}
       <div><b>Hub Deenamic</b><span>PAI Semester III</span></div>
     </div>
     <nav class="sb-menu" id="sbMenu"></nav>
-    <div class="sb-foot">© Deenamic ’25 · v2.0</div>
+    <div class="sb-foot">© Deenamic ’25 · v3.5</div>
   </aside>
   <div class="scrim" id="scrim" onclick="toggleSidebar(false)"></div>
 
@@ -382,7 +382,7 @@ textarea{resize:vertical;min-height:80px}
           <label style="display:flex;align-items:center;gap:8px;margin:12px 0 4px;cursor:pointer;font-size:14px;user-select:none"><input type="checkbox" id="loginRemember" checked style="width:18px;height:18px;flex:none;accent-color:#16a34a"><span>Ingat saya</span></label>
           <button class="btn" onclick="doLogin()">Masuk</button>
         </div>
-        <div class="callout"><span class="em">🔒</span><div>Data tersimpan aman &amp; tersinkron real-time. Absensi, Kas &amp; Tugas terhubung ke Notion; QnA &amp; Saran privat di server kelas.</div></div>
+        <div class="callout"><span class="em">���</span><div>Data tersimpan aman &amp; tersinkron real-time. Absensi, Kas &amp; Tugas terhubung ke Notion; QnA &amp; Saran privat di server kelas.</div></div>
       </div>
 
       <!-- ===== ABSENSI ===== -->
@@ -525,9 +525,10 @@ const VAPID_PUBLIC="BAfTEGkWJjxiA__Z9Kj4rr7KCo1EnCf8OMy0zSuL3c6gfwGSO-332dwlmV3x
 const NOTIFY_URL="/api/notify";
 
 /* ================== STATE ================== */
-const STATE={s:null,a:[],i:[],kas:[],trx:[],tugas:[],qna:[],qbal:[],qlike:[],saran:[],jadwal:[],dosen:[],rekapSes:[],rekapAbs:[],pres:[],pengumuman:[],utang:[]};
+const STATE={s:null,a:[],i:[],kas:[],trx:[],tugas:[],qna:[],qbal:[],qlike:[],saran:[],jadwal:[],dosen:[],rekapSes:[],rekapAbs:[],pres:[],pengumuman:[],pengRead:[],perangkat:[],utang:[]};
 const DB={get s(){return STATE.s},get a(){return STATE.a},get i(){return STATE.i}};
 let ME=null,jenisSel="Izin",dashQ='',kolQ='',absTab='absen';
+let ONLINE=new Set(),NOTIF_NIMS=new Set();
 
 /* ================== HELPERS ================== */
 const $=id=>document.getElementById(id);
@@ -753,6 +754,8 @@ function subscribeRealtime(){if(window.__rt)return;window.__rt=true;
     .on('postgres_changes',{event:'*',schema:'public',table:'transaksi'},refreshCurrent)
     .on('postgres_changes',{event:'*',schema:'public',table:'tugas'},refreshCurrent)
     .on('postgres_changes',{event:'*',schema:'public',table:'presentasi'},onPresChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'perangkat'},onStatusChange)
+    .on('postgres_changes',{event:'*',schema:'public',table:'push_subscriptions'},onStatusChange)
     .subscribe();
   sb.channel('rt-qna')
     .on('postgres_changes',{event:'*',schema:'public',table:'qna_pertanyaan'},onQnaChange)
@@ -771,6 +774,7 @@ function subscribeRealtime(){if(window.__rt)return;window.__rt=true;
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'pengumuman'},onPengInsert)
     .on('postgres_changes',{event:'UPDATE',schema:'public',table:'pengumuman'},onPengRefresh)
     .on('postgres_changes',{event:'DELETE',schema:'public',table:'pengumuman'},onPengRefresh)
+    .on('postgres_changes',{event:'*',schema:'public',table:'pengumuman_dibaca'},onPengRefresh)
     .subscribe();
 }
 async function onPengInsert(payload){const p=payload&&payload.new;await loadPengumuman();if(curMenu==='pengumuman')renderPengumuman();updateBadges();
@@ -818,7 +822,8 @@ async function enterApp(cand,silent){
   $('meRole').innerHTML='<span class="badge '+(ME.role==='pengurus'?'b-pengurus':'b-anggota')+'" style="font-size:9.5px;padding:1px 6px">'+esc(ME.jab||(ME.role==='pengurus'?'Pengurus':'Anggota'))+'</span>';
   toast(silent?'Selamat datang kembali...':'Memuat data...');
   await loadAll();await loadQna();await loadSaran();await loadInfo();await loadPengumuman();await loadPresentasi();
-  subscribeRealtime();buildMenu();
+  registerDevice();if(canSeeStatus())await loadStatus();
+  subscribeRealtime();buildMenu();startPresence();
   {const _p=new URLSearchParams(location.search);const _m=_p.get('menu');go((_m&&MENUS.some(x=>x[0]===_m))?_m:(_p.get('qna')==='1'?'qna':'absensi'))}
   updateBadges();maybeAskNotif();
   banner('🕌','Assalamu’alaikum, '+firstName(ME)+'!','Selamat datang di Hub Deenamic');
@@ -840,7 +845,7 @@ const MENUS=[
   ['info','🗓️','Jadwal & Info'],
   ['presentasi','📚','Presentasi & Tugas'],
   ['kas','💰','Kas Kelas'],
-  ['qna','💬','QnA'],
+  ['qna','����','QnA'],
   ['shalat','🕌','Jadwal Shalat'],
   ['saran','📨','Kotak Saran']
 ];
@@ -861,6 +866,7 @@ async function go(id){curMenu=id;
   markSeen(id);
   renderMenu(id);
   updateBadges();
+  if(id==='pengumuman')markPengRead();
 }
 function renderMenu(id){
   if(id==='absensi')renderAbsensi();
@@ -968,12 +974,27 @@ function paneRiwayat(){const myA=DB.a.filter(x=>x.nim===ME.nim),myI=DB.i.filter(
 
 /* ---- DASHBOARD ---- */
 function statusOf(nim){const a=DB.a.find(x=>x.nim===nim);if(a)return a.status;const iz=DB.i.find(x=>x.nim===nim&&DB.s&&x.tgl===DB.s.tgl&&x.status!=='tolak');if(iz)return iz.jenis;return 'Belum'}
+const RENDI_NIM="2577012474";
+const canSeeStatus=()=>!!(ME&&ME.nim===RENDI_NIM);
+function isInstalled(){try{return (window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true}catch(_){return false}}
+async function loadStatus(){try{const {data:pk}=await sb.from('perangkat').select('*');STATE.perangkat=pk||[];const {data:ps}=await sb.from('push_subscriptions').select('nim');NOTIF_NIMS=new Set((ps||[]).map(x=>x.nim).filter(Boolean))}catch(_){}}
+async function registerDevice(){if(!ME)return;try{await sb.from('perangkat').upsert({nim:ME.nim,installed:isInstalled(),ua:navigator.userAgent,updated_at:new Date().toISOString()},{onConflict:'nim'})}catch(_){}}
+async function onStatusChange(){if(!canSeeStatus())return;await loadStatus();if(curMenu==='absensi'&&absTab==='dash')renderAbsPane()}
+function startPresence(){try{if(window.__pres)return;const ch=sb.channel('presence-hub',{config:{presence:{key:ME?ME.nim:clientId()}}});window.__pres=ch;ch.on('presence',{event:'sync'},()=>{const st=ch.presenceState();const set=new Set();Object.values(st).forEach(arr=>arr.forEach(m=>{if(m&&m.nim)set.add(m.nim)}));ONLINE=set;if(canSeeStatus()&&curMenu==='absensi'&&absTab==='dash')renderAbsPane()});ch.subscribe(async s=>{if(s==='SUBSCRIBED'){try{await ch.track({nim:ME?ME.nim:null,at:Date.now()})}catch(_){}}})}catch(_){}}
+function statusBadges(nim){const on=ONLINE.has(nim);const r=STATE.perangkat.find(x=>x.nim===nim);const opened=!!r;const inst=r?!!r.installed:false;const notif=NOTIF_NIMS.has(nim);
+  const b=(txt,ok,warn)=>`<span style="display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin:3px 5px 0 0;background:${ok?'#dcfce7':(warn?'#fee2e2':'#eef1f5')};color:${ok?'#15803d':(warn?'#b91c1c':'#64748b')}">${txt}</span>`;
+  let s='<span style="display:block;margin-top:3px">';
+  s+=b(on?'🟢 Online':'⚪ Offline',on,false);
+  s+=inst?b('📲 App',true,false):(opened?b('🌐 Web',false,true):b('🚫 Blm buka',false,true));
+  s+=notif?b('🔔 Notif',true,false):b('🔕 No notif',false,true);
+  return s+'</span>';
+}
 function paneDash(){const s=DB.s;let hadir=0,telat=0,izin=0,belum=0;
   STUDENTS.forEach(st=>{const v=statusOf(st.nim);if(v==='Hadir')hadir++;else if(v==='Terlambat')telat++;else if(v==='Izin'||v==='Sakit')izin++;else belum++});
   let h='<div class="sub" style="margin-bottom:12px">'+(s?(esc(s.matkul)+' · '+esc(s.judul||'')):'Belum ada sesi dibuka.')+'</div>';
   h+='<div class="stats"><div class="stat g"><b>'+hadir+'</b><span>Hadir</span></div><div class="stat o"><b>'+telat+'</b><span>Telat</span></div><div class="stat b"><b>'+izin+'</b><span>Izin</span></div><div class="stat r"><b>'+belum+'</b><span>Belum</span></div></div>';
   h+='<input id="dashSearch" placeholder="🔍 Cari nama..." oninput="filterList(\'dash\')" style="margin-bottom:6px"><div class="divlabel">Kehadiran (17 anggota)</div><div class="card" id="dashList">';
-  STUDENTS.forEach(st=>{const v=statusOf(st.nim);h+='<div class="row" data-name="'+esc(st.n.toLowerCase())+'"><div class="av">'+initials(st.n)+'</div><div class="nm"><b>'+esc(st.n)+'</b><span>'+esc(st.jab)+'</span></div>'+badge(v)+'</div>'});
+  STUDENTS.forEach(st=>{const v=statusOf(st.nim);h+='<div class="row" data-name="'+esc(st.n.toLowerCase())+'"><div class="av">'+initials(st.n)+'</div><div class="nm"><b>'+esc(st.n)+'</b><span>'+esc(st.jab)+'</span>'+(canSeeStatus()?statusBadges(st.nim):'')+'</div>'+badge(v)+'</div>'});
   return h+'</div>';
 }
 function filterList(p){const el=$(p+'Search');if(!el)return;const q=(el.value||'').toLowerCase();if(p==='dash')dashQ=q;else if(p==='kol')kolQ=q;
@@ -1389,7 +1410,12 @@ const PENG_KAT=[['penting','🔴','Penting'],['umum','📢','Umum'],['ujian','�
 const KAT_LABEL=Object.fromEntries(PENG_KAT.map(k=>[k[0],k[1]+' '+k[2]]));
 let pengEditing=null;
 function pengAuthor(who){if(!who)return '?';const st=STUDENTS.find(s=>s.n===who)||STUDENTS.find(s=>s.nim===who)||STUDENTS.find(s=>s.panggil===who);if(!st)return esc(who);const j=(st.jab||'').toLowerCase();let role='Pengurus';if(j.includes('admin'))role='Admin';else if(j.includes('bukwa'))role='Bukwa';else if(j.includes('sekretaris'))role='Sekretaris';else if(j.includes('bendahara'))role='Bendahara';return esc(role);}
-async function loadPengumuman(){const {data}=await sb.from('pengumuman').select('*').order('created_at',{ascending:false});STATE.pengumuman=data||[]}
+const PENG_SEE_READ=["2577012474","2577012473"];/* hanya Rendi & Nisa yang boleh lihat read-receipt */
+const canSeeRead=()=>!!(ME&&PENG_SEE_READ.includes(ME.nim));
+function readersOf(id){return STATE.pengRead.filter(r=>r.pengumuman_id===id).map(r=>r.nim)}
+async function markPengRead(){if(!ME||!STATE.pengumuman.length)return;const mine=new Set(STATE.pengRead.filter(r=>r.nim===ME.nim).map(r=>r.pengumuman_id));const rows=STATE.pengumuman.filter(p=>!mine.has(p.id)).map(p=>({pengumuman_id:p.id,nim:ME.nim}));if(!rows.length)return;const {error}=await sb.from('pengumuman_dibaca').upsert(rows,{onConflict:'pengumuman_id,nim'});if(error){console.error(error);return}const now=new Date().toISOString();rows.forEach(r=>STATE.pengRead.push({pengumuman_id:r.pengumuman_id,nim:r.nim,dilihat_at:now}));if(canSeeRead()&&curMenu==='pengumuman')renderPengumuman()}
+function showPengReaders(id){const p=STATE.pengumuman.find(x=>x.id===id);if(!p)return;const rd=readersOf(id);const sudah=STUDENTS.filter(s=>rd.includes(s.nim));const belum=STUDENTS.filter(s=>!rd.includes(s.nim));const chips=arr=>arr.length?arr.map(s=>`<span style="display:inline-block;background:#eef3fb;color:#0b5cad;border-radius:14px;padding:4px 10px;margin:3px 4px 0 0;font-size:12.5px">${esc(firstName(s))}</span>`).join(''):'<span style="color:#888;font-size:12.5px">—</span>';const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99999;display:flex;align-items:center;justify-content:center;padding:18px';ov.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;max-height:80vh;overflow:auto;padding:18px 18px 16px;box-shadow:0 12px 40px rgba(0,0,0,.25)"><div style="font-weight:800;font-size:15px;margin-bottom:2px">👁 Dilihat oleh</div><div style="font-size:12.5px;color:#666;margin-bottom:12px">${esc(p.judul||'(tanpa judul)')}</div><div style="font-weight:700;font-size:13px;color:#16a34a;margin-bottom:2px">✅ Sudah lihat (${sudah.length}/${STUDENTS.length})</div><div style="margin-bottom:12px">${chips(sudah)}</div><div style="font-weight:700;font-size:13px;color:#e11d48;margin-bottom:2px">❌ Belum lihat (${belum.length})</div><div style="margin-bottom:14px">${chips(belum)}</div><button class="btn" style="width:100%">Tutup</button></div>`;ov.querySelector('button').onclick=()=>ov.remove();ov.onclick=e=>{if(e.target===ov)ov.remove()};document.body.appendChild(ov)}
+async function loadPengumuman(){const {data}=await sb.from('pengumuman').select('*').order('created_at',{ascending:false});STATE.pengumuman=data||[];const {data:rd}=await sb.from('pengumuman_dibaca').select('*');STATE.pengRead=rd||[]}
 function renderPengumuman(){const box=$('pengBody');if(!box)return;const adm=can('pengumuman');let h='';
   if(adm){const ed=pengEditing?STATE.pengumuman.find(x=>x.id===pengEditing):null;const eKat=(ed&&Array.isArray(ed.kategori))?ed.kategori:[];const eTag=(ed&&Array.isArray(ed.tag_nims))?ed.tag_nims:[];
     h+=`<div class="card solid"><div class="divlabel">${ed?'✏️ Edit Pengumuman':'➕ Buat Pengumuman'}</div>`;
@@ -1409,7 +1435,7 @@ function renderPengumuman(){const box=$('pengBody');if(!box)return;const adm=can
     if(kat.length)h+=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px">`+kat.map(k=>`<span class="badge" style="background:#eef3fb;color:#0b5cad;font-size:10.5px">${esc(KAT_LABEL[k]||k)}</span>`).join('')+`</div>`;
     h+=`<div style="font-size:14px;line-height:1.55;margin-top:6px;white-space:pre-wrap">${esc(p.isi||'')}</div>`;
     if(Array.isArray(p.tag_nims)&&p.tag_nims.length)h+=`<div style="font-size:11.5px;color:#0b5cad;margin-top:6px">🏷️ ${p.tag_nims.map(n=>esc(firstName(byNim(n)))).join(', ')}</div>`;
-    h+=`<div style="font-size:11.5px;color:var(--text2);margin-top:8px">✍️ ${pengAuthor(p.dibuat_oleh)} · ${timeago(p.created_at)}</div></div>`;
+    h+=`<div style="font-size:11.5px;color:var(--text2);margin-top:8px">✍️ ${pengAuthor(p.dibuat_oleh)} · ${timeago(p.created_at)}</div>${canSeeRead()?`<div style="font-size:11.5px;color:#0b5cad;margin-top:6px;cursor:pointer;font-weight:600" onclick="showPengReaders('${p.id}')">👁 ${readersOf(p.id).length}/${STUDENTS.length} sudah lihat · ketuk untuk detail</div>`:''}</div>`;
     if(adm)h+=`<div style="display:flex;flex-direction:column;gap:6px"><button class="iconbtn" onclick="editPeng('${p.id}')">✏️</button><button class="iconbtn" onclick="hapusPeng('${p.id}')">🗑️</button></div>`;
     h+=`</div></div>`;});
   box.innerHTML=h}
@@ -1424,7 +1450,7 @@ async function savePeng(){const judul=$('pgJudul').value.trim();const isi=$('pgI
   if(isNew){const t=penting?'📢 Pengumuman Penting':'🔔 Pengumuman Baru';const bd=judul||isi||'';
     if(tag_nims.length){pushNotify({title:'🏷️ Kamu di-tag di pengumuman',body:bd,url:'/?menu=pengumuman',onlyNims:tag_nims});pushNotify({title:t,body:bd,url:'/?menu=pengumuman',excludeNims:tag_nims.concat([ME.nim])})}
     else{pushNotify({title:t,body:bd,url:'/?menu=pengumuman',excludeNims:[ME.nim]})}}
-  pengEditing=null;await loadPengumuman();renderPengumuman();updateBadges();toast('Pengumuman tersimpan ✅')}
+  pengEditing=null;await loadPengumuman();renderPengumuman();markPengRead();updateBadges();toast('Pengumuman tersimpan ✅')}
 function editPeng(id){pengEditing=id;renderPengumuman();const el=$('pgJudul');if(el)try{el.scrollIntoView({behavior:'smooth',block:'center'})}catch(_){}}
 function cancelPeng(){pengEditing=null;renderPengumuman()}
 async function hapusPeng(id){const ok=await confirmBox('Hapus pengumuman ini?',{emoji:'🗑️',title:'Hapus Pengumuman',yes:'Ya, hapus',no:'Batal'});if(!ok)return;
