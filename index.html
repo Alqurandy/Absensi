@@ -488,23 +488,23 @@ textarea{resize:vertical;min-height:80px}
 <script>
 /* ================== DATA STATIS ================== */
 const STUDENTS=[
-  {n:"MOCHAMMAD RIO AL - QURANDY",nim:"2577012474",role:"pengurus",jab:"Mas Admin",panggil:"Rendi",pin:"siadmin"},
-  {n:"KHOIRUN NISA'",nim:"2577012473",role:"pengurus",jab:"Bukwa",panggil:"Nisa",pin:"sibukwa"},
-  {n:"DEVA RAHMAWATI",nim:"2577012528",role:"pengurus",jab:"Sekretaris I",panggil:"Deva",pin:"dihdeva"},
-  {n:"ASNA CAHYA FURAIDA",nim:"2577012531",role:"anggota",jab:"Anggota",panggil:"Asna"},
-  {n:"FAHMI HUSAINI",nim:"2577012479",role:"anggota",jab:"Anggota",panggil:"Fahmi"},
-  {n:"FAIZATUL AFIFAH",nim:"2577012514",role:"anggota",jab:"Anggota",panggil:"Faza"},
-  {n:"FARIHA MAULIDIA",nim:"2577012489",role:"anggota",jab:"Bendahara",panggil:"Fariha",pin:"sibendahara"},
-  {n:"HIKMATUL ISLAMIYAH",nim:"2577012496",role:"anggota",jab:"Anggota",panggil:"Mia"},
-  {n:"M. SOHIHUL ISLAM ALZEVI",nim:"2577012510",role:"anggota",jab:"Anggota",panggil:"Olil"},
-  {n:"MELANDA KRISTI KUSUMA",nim:"2577012536",role:"anggota",jab:"Anggota",panggil:"Melan"},
-  {n:"MOCH. ABDUL ROHIM",nim:"2577012535",role:"anggota",jab:"Anggota",panggil:"Rohim"},
-  {n:"MUHAMAD BISMA AGUSTIAN",nim:"2577012492",role:"anggota",jab:"Anggota",panggil:"Bisma"},
-  {n:"MUHAMAD ZAILANI",nim:"2577012512",role:"anggota",jab:"Anggota",panggil:"Zailani"},
-  {n:"NUR ISLAM MAULANA NUGRAHA",nim:"2477012352",role:"anggota",jab:"Anggota",panggil:"Maul"},
-  {n:"SINDI AULIA WARDANI",nim:"2577012544",role:"anggota",jab:"Sekretaris II",panggil:"Sindi",pin:"sipeje"},
-  {n:"SIRUL",nim:"2577012538",role:"anggota",jab:"Anggota",panggil:"Sirul"},
-  {n:"WISAM IZZUDDIN FALAH ALHARIRI",nim:"2577012470",role:"anggota",jab:"Anggota",panggil:"Wisam"}
+  {n:"MOCHAMMAD RIO AL - QURANDY",nim:"2577012474",role:"pengurus",jab:"Mas Admin",panggil:"Rendi",hp:"+62 856-4911-2941",pin:"siadmin"},
+  {n:"KHOIRUN NISA'",nim:"2577012473",role:"pengurus",jab:"Bukwa",panggil:"Nisa",hp:"+62 857-0643-7921",pin:"sibukwa"},
+  {n:"DEVA RAHMAWATI",nim:"2577012528",role:"pengurus",jab:"Sekretaris I",panggil:"Deva",hp:"+62 822-8150-5820",pin:"dihdeva"},
+  {n:"ASNA CAHYA FURAIDA",nim:"2577012531",role:"anggota",jab:"Anggota",panggil:"Asna",hp:"+62 895-3961-39039"},
+  {n:"FAHMI HUSAINI",nim:"2577012479",role:"anggota",jab:"Anggota",panggil:"Fahmi",hp:"+62 838-4813-4174"},
+  {n:"FAIZATUL AFIFAH",nim:"2577012514",role:"anggota",jab:"Anggota",panggil:"Faza",hp:"+62 895-6230-80706"},
+  {n:"FARIHA MAULIDIA",nim:"2577012489",role:"anggota",jab:"Bendahara",panggil:"Fariha",hp:"+62 814-5908-9608",pin:"sibendahara"},
+  {n:"HIKMATUL ISLAMIYAH",nim:"2577012496",role:"anggota",jab:"Anggota",panggil:"Mia",hp:"+62 813-3009-8363"},
+  {n:"M. SOHIHUL ISLAM ALZEVI",nim:"2577012510",role:"anggota",jab:"Anggota",panggil:"Olil",hp:"+62 877-9007-7612"},
+  {n:"MELANDA KRISTI KUSUMA",nim:"2577012536",role:"anggota",jab:"Anggota",panggil:"Melan",hp:"+62 858-5079-9206"},
+  {n:"MOCH. ABDUL ROHIM",nim:"2577012535",role:"anggota",jab:"Anggota",panggil:"Rohim",hp:"+62 831-1421-1936"},
+  {n:"MUHAMAD BISMA AGUSTIAN",nim:"2577012492",role:"anggota",jab:"Anggota",panggil:"Bisma",hp:"+62 822-3243-7635"},
+  {n:"MUHAMAD ZAILANI",nim:"2577012512",role:"anggota",jab:"Anggota",panggil:"Zailani",hp:"+62 858-0404-1471"},
+  {n:"NUR ISLAM MAULANA NUGRAHA",nim:"2477012352",role:"anggota",jab:"Anggota",panggil:"Maul",hp:"+62 878-2538-2411"},
+  {n:"SINDI AULIA WARDANI",nim:"2577012544",role:"anggota",jab:"Sekretaris II",panggil:"Sindi",hp:"+62 895-2850-9626",pin:"sipeje"},
+  {n:"SIRUL",nim:"2577012538",role:"anggota",jab:"Anggota",panggil:"Sirul",hp:"+62 821-3173-5873"},
+  {n:"WISAM IZZUDDIN FALAH ALHARIRI",nim:"2577012470",role:"anggota",jab:"Anggota",panggil:"Wisam",hp:"+62 857-5241-1675"}
 ];
 const MATKUL=["Ushul Fiqh","Filsafat Pendidikan Islam","Sejarah Pendidikan Islam","Qowaidul Fiqih","Teori Belajar & Pembelajaran","Psikologi Belajar","Pengembangan Kurikulum PAI","Pengembangan Profesi Keguruan","English For Spesific Purpose"];
 
@@ -790,6 +790,39 @@ function subscribeRealtime(){if(window.__rt)return;window.__rt=true;
     .on('postgres_changes',{event:'*',schema:'public',table:'pengumuman_dibaca'},onPengRefresh)
     .subscribe();
 }
+/* ===== Jaring pengaman realtime: auto-refresh supaya semua data sinkron tanpa perlu refresh manual ===== */
+function __isTyping(){const a=document.activeElement;return !!(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.tagName==='SELECT'||a.isContentEditable))}
+function __stateSig(id){try{
+  if(id==='info')return JSON.stringify([STATE.jadwal,STATE.dosen]);
+  if(id==='pengumuman')return JSON.stringify([STATE.pengumuman,STATE.pengRead]);
+  if(id==='saran')return JSON.stringify(STATE.saran);
+  if(id==='qna')return JSON.stringify([STATE.qna,STATE.qbal,STATE.qnaSes,STATE.qlike]);
+  if(id==='presentasi')return JSON.stringify(STATE.pres);
+  if(id==='absensi'||id==='kas'||id==='tugas')return JSON.stringify([STATE.s,STATE.a,STATE.i,STATE.kas,STATE.trx,STATE.tugas]);
+}catch(_){}return ''}
+let __pollSig='';
+async function pollRefresh(force){
+  try{
+    if(!ME)return;
+    if(document.visibilityState!=='visible'&&!force)return;
+    if(__isTyping()&&!force)return;
+    const id=curMenu;
+    if(id==='absensi'||id==='kas'||id==='tugas'){await loadAll();if(typeof loadStatus==='function'&&typeof canSeeStatus==='function'&&canSeeStatus())await loadStatus();}
+    else if(id==='qna')await loadQna();
+    else if(id==='saran')await loadSaran();
+    else if(id==='info')await loadInfo();
+    else if(id==='presentasi')await loadPresentasi();
+    else if(id==='pengumuman')await loadPengumuman();
+    else return;
+    const sig=__stateSig(id);
+    if(sig!==__pollSig){__pollSig=sig;renderMenu(id);updateBadges()}
+  }catch(_){}
+}
+function startAutoRefresh(){
+  if(window.__poll)return;window.__poll=setInterval(pollRefresh,12000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){__pollSig='';pollRefresh(true)}});
+  window.addEventListener('online',()=>{__pollSig='';pollRefresh(true)});
+}
 async function onPengInsert(payload){const p=payload&&payload.new;await loadPengumuman();if(curMenu==='pengumuman')renderPengumuman();updateBadges();
   if(!p||!ME||p.dibuat_oleh===ME.n)return;
   const tagged=Array.isArray(p.tag_nims)&&p.tag_nims.includes(ME.nim);
@@ -836,7 +869,7 @@ async function enterApp(cand,silent){
   toast(silent?'Selamat datang kembali...':'Memuat data...');
   await loadAll();await loadQna();await loadSaran();await loadInfo();await loadPengumuman();await loadPresentasi();
   registerDevice();if(canSeeStatus())await loadStatus();
-  subscribeRealtime();buildMenu();startHubPresence();
+  subscribeRealtime();buildMenu();startHubPresence();startAutoRefresh();
   {const _p=new URLSearchParams(location.search);const _m=_p.get('menu');go((_m&&MENUS.some(x=>x[0]===_m))?_m:(_p.get('qna')==='1'?'qna':'absensi'))}
   updateBadges();maybeAskNotif();
   banner('🕌','Assalamu’alaikum, '+firstName(ME)+'!',salam()+', selamat datang di Hub Deenamic');
@@ -879,6 +912,7 @@ async function go(id){curMenu=id;
   markSeen(id);
   renderMenu(id);
   updateBadges();
+  __pollSig=__stateSig(id);
   if(id==='pengumuman')markPengRead();
 }
 function renderMenu(id){
@@ -898,7 +932,7 @@ function renderMenu(id){
 function absTabsFor(){
   return can('absen')
     ? [['dash','📊 Dasbor'],['absen','✅ Absen'],['kolektif','📋 Kolektif'],['izin','✍️ Izin'],['rekap','🏆 Rekap'],['sesi','➕ Sesi'],['ekspor','📤 Ekspor']]
-    : [['absen','✅ Absen'],['izin','✍️ Izin'],['riwayat','🕓 Riwayat'],['rekap','🏆 Rekap']];
+    : [['absen','✅ Absen'],['dash','📊 Dasbor'],['izin','✍️ Izin'],['riwayat','🕓 Riwayat'],['rekap','🏆 Rekap']];
 }
 function renderAbsensi(){
   $('absHi').textContent='Halo, '+firstName(ME)+' 👋';
@@ -1007,7 +1041,7 @@ function paneDash(){const s=DB.s;let hadir=0,telat=0,izin=0,belum=0;
   let h='<div class="sub" style="margin-bottom:12px">'+(s?(esc(s.matkul)+' · '+esc(s.judul||'')):'Belum ada sesi dibuka.')+'</div>';
   h+='<div class="stats"><div class="stat g"><b>'+hadir+'</b><span>Hadir</span></div><div class="stat o"><b>'+telat+'</b><span>Telat</span></div><div class="stat b"><b>'+izin+'</b><span>Izin</span></div><div class="stat r"><b>'+belum+'</b><span>Belum</span></div></div>';
   h+='<input id="dashSearch" placeholder="🔍 Cari nama..." oninput="filterList(\'dash\')" style="margin-bottom:6px"><div class="divlabel">Kehadiran (17 anggota)</div><div class="card" id="dashList">';
-  STUDENTS.forEach(st=>{const v=statusOf(st.nim);h+='<div class="row" data-name="'+esc(st.n.toLowerCase())+'"><div class="av">'+initials(st.n)+'</div><div class="nm"><b>'+esc(st.n)+'</b><span>'+esc(st.jab)+'</span>'+(canSeeStatus()?statusBadges(st.nim):'')+'</div>'+badge(v)+'</div>'});
+  STUDENTS.forEach(st=>{const v=statusOf(st.nim);const wa=st.hp?waLink(st.hp):null;const waBtn=wa?'<a href="'+wa+'" target="_blank" rel="noopener" title="Chat WhatsApp '+esc(st.n)+'" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#25D366;margin:0 6px 0 0;flex:0 0 auto;text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,.2)"><svg viewBox="0 0 24 24" width="17" height="17" fill="#fff"><path d="M17.5 14.4c-.3-.15-1.7-.84-2-.93-.26-.1-.45-.15-.64.15-.19.29-.74.93-.9 1.12-.17.19-.33.21-.62.07-.29-.15-1.22-.45-2.32-1.43-.86-.76-1.44-1.7-1.6-1.99-.17-.29-.02-.45.13-.6.13-.13.29-.33.43-.5.15-.17.19-.29.29-.48.1-.19.05-.36-.02-.5-.07-.15-.64-1.55-.88-2.12-.23-.55-.47-.48-.64-.49l-.55-.01c-.19 0-.5.07-.76.36-.26.29-1 .98-1 2.38 0 1.4 1.02 2.76 1.17 2.95.15.19 2.02 3.08 4.9 4.32.68.29 1.22.47 1.63.6.69.22 1.31.19 1.8.11.55-.08 1.7-.69 1.94-1.36.24-.67.24-1.24.17-1.36-.07-.12-.26-.19-.55-.34zM12 2C6.48 2 2 6.48 2 12c0 1.77.46 3.43 1.27 4.88L2 22l5.25-1.38A9.94 9.94 0 0 0 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2z"/></svg></a>':'';h+='<div class="row" data-name="'+esc(st.n.toLowerCase())+'"><div class="av">'+initials(st.n)+'</div><div class="nm"><b>'+esc(st.n)+'</b><span>'+esc(st.jab)+'</span>'+(canSeeStatus()?statusBadges(st.nim):'')+'</div>'+waBtn+badge(v)+'</div>'});
   return h+'</div>';
 }
 function filterList(p){const el=$(p+'Search');if(!el)return;const q=(el.value||'').toLowerCase();if(p==='dash')dashQ=q;else if(p==='kol')kolQ=q;
